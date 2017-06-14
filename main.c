@@ -1,4 +1,4 @@
-// Computer Architecture Homework #2
+// Computer Architecture Homework #3
 // Noh Dong Ju & Park Kyung Won & Yu Jin woo
 
 #include <stdio.h>
@@ -8,127 +8,56 @@
 #include "file_read.h"
 #include "simulator.h"
 
-//#include "read.h" //read config and instruction
-//#include "simul.h"//func related simulation
-
-//typedef struct Config { int justtest;  } Config;
-
+//long disp functions
 void disp_title(void);
-void disp_taskdata(struct CONFIG* configs, int inst_idx, int conf_idx, char** inst_filename);
 void disp_end(void);
 void disp_error(void);
-int get_filepath_from_arg(int argc, char** argv, char*** conf_path, int* conf_len, char*** inst_path, int* inst_len, char*** inst_filename);
+
+const char* get_filename(const char* filepath);//get filename from full filepath
+int read_all_data(int argc, char** argv, struct CONFIG* out_config,
+	              struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name);//package for reading function with statement
+int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num);//free data
 
 int main(int argc, char* argv[])
 {
-	//
-	// Print intro message
-	//
-	disp_title();
 
-	// 
-	// Read config and Data file and make config array
-	//
-	printf("\n");
-	printf("Read Config and Instruction files : \n");
-	
+	disp_title();//display awesome title
 
-	char** conf_name=0;  int conf_len=0;//name = 파일경로, len= 총 개수,
-	char** inst_name=0;  int inst_len=0; char** inst_filename=0;
+	//declear data containers
+	struct CONFIG config; //config
+	struct INST** inst_arr;//inst_arr's array
+	int*          inst_len;//inst_arr's length array
+	int           inst_num;//inst_arr's array length
+	char		  report_name[256];//report filename
 
-	if (get_filepath_from_arg(argc, argv, &conf_name, &conf_len, &inst_name, &inst_len, &inst_filename) != 0)
-	{//만약 메모리 부족이나 기타 이유로 정상 실행이 안되면,
+	//read data
+	if (read_all_data(argc, argv, &config, &inst_arr, &inst_len, &inst_num, report_name) != 0) {
+		disp_error();
+		return 1; //if there is error, quit
+	}
+	/*
+	//run simulation
+	struct REPORT report;
+	report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
+
+	//print out report
+	FILE* f_report = fopen(report_name, "w");
+	if (f_report == NULL)
+	{
+		printf("Create report file error\n");
 		disp_error();
 		return 1;
 	}
 
-	printf("Total %3d Config and %3d Instruction founded\n", conf_len, inst_len);
-	//읽을 파일의 개수와 경로 파악 끝
-
-	if (conf_len == 0 || inst_len == 0)
-	{//만약 데이터 셋이 제대로 주어지지 않았다면 이후를 실행할 수 없으므로 정상 종료한다.
-		printf("Too few files. Need .conf and .inst both.\n");
-		disp_end();
-		return 0;
-	}
-
-
-	//
-	// simulate and for every config combination
-	//
-
-
-	//config 파일을 읽어 저장
-	struct CONFIG* configs;
-	configs = malloc(sizeof(struct CONFIG)*(conf_len));
-
-	int for_ignore = 0;
-	for (int idx = 0; idx < conf_len; ++idx)
-	{
-		if (!config_reader(conf_name[idx], configs + idx - for_ignore))
-		{
-			printf("Cannot find file %s\n", conf_name[idx]);
-			++for_ignore;
-		}
-	}
-	conf_len -= for_ignore;
-
-	//inst 파일은 필요할 때 한개씩 읽어 저장(용량이 크므로)
-	struct INST* inst_arr; int inst_arr_len;
-
-	for (int inst_idx = 0; inst_idx < inst_len; ++inst_idx)
-	{//모든 인스트럭션에 대해 
-		if (!make_inst_array(inst_name[inst_idx], &inst_arr, &inst_arr_len)) 
-		{
-			printf("Error dectection - ignore this file %s\n", inst_filename[inst_idx]);
-			continue;
-			//return 1;
-		}
-		//printf("inst_%d : %s\n", inst_idx + 1, inst_filename[inst_idx]);
-
-		for (int conf_idx = 0; conf_idx < conf_len; ++conf_idx)
-		{//모든 config에 대해
-
-			//정보 출력
-			disp_taskdata(configs, inst_idx, conf_idx, inst_filename);
-
-			//시뮬레이션
-			struct REPORT* report;
-			report = core_simulator(configs + conf_idx, inst_arr, inst_arr_len);//simulate
-
-			//보고서 출력
-			char out_filename[256];
-			sprintf(out_filename, "%d_%d_%d_%d_%s_report.out",
-					configs[conf_idx].Dump, configs[conf_idx].Width, configs[conf_idx].ROB_size, configs[conf_idx].RS_size, inst_filename[inst_idx]);
-			FILE* f_report = fopen(out_filename, "w");
-			
-			if (f_report == NULL)
-			{
-				printf("Error : Lack of memory\n");
-				disp_error();
-				return 1;
-			}
-			REPORT_fprinter(report, f_report);
-
-			fclose(f_report);			
-			free(report);
-
-			printf("out : %s", out_filename);
-			printf("\n\n");
-		}
-
-		free(inst_arr);
-
-	}
-
-	free(configs);// free config
-	free(conf_name);
-	free(inst_name);
-	free(inst_filename);
-
+	REPORT_fprinter(&report, f_report);
+	fclose(f_report);
+	*/
+	printf("Report saved : %s", report_name);
+	printf("\n\n");
+	
+	free_all_data(inst_arr, inst_len, inst_num);
 	disp_end();
-
-	return 0;
+	return 0;//program quit
 }
 
 void disp_title(void)
@@ -170,63 +99,60 @@ void disp_error(void)
 	getchar();
 }
 
-int get_filepath_from_arg(int argc, char** argv,char*** conf_path, int* conf_len, char*** inst_path, int* inst_len, char*** inst_filename)
+int read_all_data(int argc, char** argv, struct CONFIG* out_config,
+	struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name)//package for reading function with statement
 {
-
-	(*conf_path) = malloc(sizeof(char*)*argc);
-	(*inst_path) = malloc(sizeof(char*)*argc);//공간 낭비지만 그렇게 크지는 않음
-	(*inst_filename) = malloc(sizeof(char*)*argc);
-	if ((*conf_path) == NULL ||
-		(*inst_path) == NULL ||
-		(*inst_filename) == NULL)
-	{
-		printf("Lack of memory!\n");
+	if (argc < 3)
+	{//no inst	
+		printf("Too few arguments!");
 		return 1;
 	}
-	(*conf_len) = 0;
-	(*inst_len) = 0;
-
-	if (argc == 1)
-	{//if there is no input, set basic value;
-
-		(*conf_len) = 1;
-		(*conf_path)[0] = "config.conf";
-
-		(*inst_len) = 1;
-		(*inst_path)[0] = "instruction.inst";
-		(*inst_filename)[0] = "instruction.inst";
-
+	else if(argc > 4)
+	{//more than two inst
+		printf("Too many arguments!");
+		return 1;
 	}
 	else
-	{//if there is input from argv,  모든 입력 인수를 읽어 .conf는 conf에 .inst는 inst에, 나머지는 무시.
+	{
+		//mem alloc
+		*out_inst_num = (argc - 2);
+		*out_inst_len = (int*)calloc(*out_inst_num, sizeof(int));
+		*out_inst_arrs= (struct INST**)calloc(*out_inst_num, sizeof(struct INST*));
 
-		char* file_name = 0;//확장자나 파일 명을 기록할 임시 포인터
-
-		for (int idx = 1; idx < argc; ++idx)//every config_file 
+		//data read
+		if (!config_reader(argv[1], out_config))
 		{
-			//printf("%s\n", argv[idx]);
+			printf("Config read error!\n");
+			return 1;
+		}
 
-			file_name = argv[idx] + (strlen(argv[idx]) - 5); // 맨 끝 5자리를 가져온다. 그 후 .conf인지 .inst인지 둘다 아닌지를 확인한다. 
-			
-			if (0 == strcmp(file_name, ".conf"))//if conf file
+		for (int idx = *out_inst_num; idx > 0; --idx) {
+			if (!make_inst_array(argv[idx + 1], (*out_inst_arrs) + idx - 1, (*out_inst_len) + idx - 1))
 			{
-				(*conf_path)[*conf_len] = argv[idx];
-				++(*conf_len);
-			}
-			else if (0 == strcmp(file_name, ".inst"))
-			{
-				
-				(*inst_path)[*inst_len] = argv[idx];
-				(*inst_filename)[*inst_len] = get_filename(argv[idx]);
-				//printf("%s", inst_filename[inst_len]);
-				++(*inst_len);
-			}
-			else
-			{
-				printf("File %s is nethier .conf and .inst! \n", argv[idx]);
+				printf("Data read error %d\n", idx);
+				return 1;
 			}
 		}
 
+		//make report name
+		strcat(report_name, get_filename(argv[1]));
+		for (int idx = 0; idx < (*out_inst_num); ++idx) {
+			strcat(report_name, "_");
+			strcat(report_name, get_filename(argv[idx+2]));
+		}
+		strcat(report_name, "_out.out");
 	}
+}
+
+int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num)//free data
+{
+	for (int idx = 0; idx < out_inst_num; ++idx)
+	{
+		free(out_inst_arrs[idx]);
+	}
+	free(out_inst_arrs);
+	free(out_inst_len);
+
 	return 0;
 }
+
