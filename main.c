@@ -6,14 +6,14 @@
 
 #include "data_structures.h"
 #include "file_read.h"
-#include "simulator.h"
+//#include "simulator.h"
 
 //long disp functions
 void disp_title(void);
 void disp_end(void);
 void disp_error(void);
 
-const char* get_filename(const char* filepath);//get filename from full filepath
+char *get_filename(char* filepath);//get filename from full filepath
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 	              struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name);//package for reading function with statement
 int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num);//free data
@@ -97,6 +97,19 @@ void disp_error(void)
 {
 	printf("Program error - Press any key to quit");
 	getchar();
+}
+
+char *get_filename(char* filepath)//get filename from full filepath
+{
+	int idx;
+	for (idx = strlen(filepath); idx > 0; --idx)
+	{
+		if (filepath[idx - 1] == '\\' || filepath[idx - 1] == '/')
+		{
+			return filepath + idx;
+		}
+	}
+	return filepath;
 }
 
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
