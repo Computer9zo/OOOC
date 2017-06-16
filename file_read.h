@@ -17,7 +17,4 @@ bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len);// b
 //config file reading
 bool config_reader(char* filename, struct CONFIG *out_config);// bool is_readed, read whole file and convert Config file
 
-//file path control
-char* get_filename(char* filepath);
-
 #endif // !_FILE_READ_

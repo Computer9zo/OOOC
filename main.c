@@ -13,7 +13,7 @@ void disp_title(void);
 void disp_end(void);
 void disp_error(void);
 
-char *get_filename(char* filepath);//get filename from full filepath
+const char *get_filename(const char* filepath);//get filename from full filepath
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 	              struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name);//package for reading function with statement
 int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num);//free data
@@ -35,10 +35,10 @@ int main(int argc, char* argv[])
 		disp_error();
 		return 1; //if there is error, quit
 	}
-	/*
+	
 	//run simulation
 	struct REPORT report;
-	report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
+	//report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
 
 	//print out report
 	FILE* f_report = fopen(report_name, "w");
@@ -49,9 +49,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	REPORT_fprinter(&report, f_report);
+	//REPORT_fprinter(&report, f_report);
 	fclose(f_report);
-	*/
+	
 	printf("Report saved : %s", report_name);
 	printf("\n\n");
 	
@@ -99,13 +99,11 @@ void disp_error(void)
 	getchar();
 }
 
-char *get_filename(char* filepath)//get filename from full filepath
+const char *get_filename(const char* filepath)//get filename from full filepath
 {
 	int idx;
-	for (idx = strlen(filepath); idx > 0; --idx)
-	{
-		if (filepath[idx - 1] == '\\' || filepath[idx - 1] == '/')
-		{
+	for (idx = strlen(filepath); idx > 0; --idx) {
+		if (filepath[idx - 1] == '\\' || filepath[idx - 1] == '/') {
 			return filepath + idx;
 		}
 	}
@@ -113,35 +111,31 @@ char *get_filename(char* filepath)//get filename from full filepath
 }
 
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
-	struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name)//package for reading function with statement
+	struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name)
+	//package for reading function with statement
 {
-	if (argc < 3)
-	{//no inst	
-		printf("Too few arguments!");
+	if (argc < 3) {//no inst	
+		printf("Too few arguments!\n");
 		return 1;
 	}
-	else if(argc > 4)
-	{//more than two inst
-		printf("Too many arguments!");
+	else if(argc > 4) { //more than two inst
+		printf("Too many arguments!\n");
 		return 1;
-	}
-	else
-	{
+	} 
+	else {
 		//mem alloc
 		*out_inst_num = (argc - 2);
 		*out_inst_len = (int*)calloc(*out_inst_num, sizeof(int));
 		*out_inst_arrs= (struct INST**)calloc(*out_inst_num, sizeof(struct INST*));
 
 		//data read
-		if (!config_reader(argv[1], out_config))
-		{
+		if (!config_reader(argv[1], out_config)) {
 			printf("Config read error!\n");
 			return 1;
 		}
 
 		for (int idx = *out_inst_num; idx > 0; --idx) {
-			if (!make_inst_array(argv[idx + 1], (*out_inst_arrs) + idx - 1, (*out_inst_len) + idx - 1))
-			{
+			if (!make_inst_array(argv[idx + 1], (*out_inst_arrs) + idx - 1, (*out_inst_len) + idx - 1)) {
 				printf("Data read error %d\n", idx);
 				return 1;
 			}
@@ -155,12 +149,12 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 		}
 		strcat(report_name, "_out.out");
 	}
+	return 0;
 }
 
 int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num)//free data
 {
-	for (int idx = 0; idx < out_inst_num; ++idx)
-	{
+	for (int idx = 0; idx < out_inst_num; ++idx) {
 		free(out_inst_arrs[idx]);
 	}
 	free(out_inst_arrs);

@@ -1,0 +1,4 @@
+﻿  file_read.c
+d:\deposit\github\oooc\file_read.c(75): warning C4477: 'printf' : 서식 문자열 '%d'에 'int' 형식의 인수가 필요하지만 variadic 인수 1의 형식이 'INST *'입니다.
+  forvs_oooc.vcxproj -> D:\Deposit\github\OOOC\forvs_oooc\Debug\forvs_oooc.exe
+  forvs_oooc.vcxproj -> D:\Deposit\github\OOOC\forvs_oooc\Debug\forvs_oooc.pdb (Partial PDB)

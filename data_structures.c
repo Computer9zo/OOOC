@@ -65,7 +65,7 @@ void FQ_arr_printer(const struct FQ* fq, struct CA_status fq_status)
 {
 	printf("Fetch queue\n");
 
-	struct FQ* fq_idx = NULL;
+	const struct FQ* fq_idx = NULL;
 	int idx;
 	for (idx = 0; idx < fq_status.size; ++idx)
 	{
@@ -91,7 +91,7 @@ void FQ_arr_printer(const struct FQ* fq, struct CA_status fq_status)
 void RAT_arr_printer(const struct RAT* rat, int rat_size)
 {
 	printf("RAT\n");
-	struct RAT *rat_idx = NULL;
+	const struct RAT *rat_idx = NULL;
 	int idx;
 	for (idx = 0; idx < rat_size-1; ++idx)
 	{
@@ -110,7 +110,7 @@ void RS_arr_printer(const struct RS *rs, int rs_size, struct CA_status* rob_stat
 {
 	printf("Reservation station\n");
 
-	struct RS *rs_idx = NULL;//편의를 위한 임시 저장 변수
+	const struct RS *rs_idx = NULL;//편의를 위한 임시 저장 변수
 	int idx;
 
 	for (idx = 0; idx < rs_size; ++idx)
@@ -130,7 +130,7 @@ void ROB_arr_printer(const struct ROB *rob, struct CA_status rob_status)
 {
 	printf("Reorder buffer\n");
 
-	struct ROB *rob_idx = NULL;
+	const struct ROB *rob_idx = NULL;
 	int idx;
 	for (idx = 0; idx < rob_status.size; ++idx)
 	{
@@ -177,7 +177,7 @@ void REPORT_reporter(const struct REPORT* printed)
 }
 void RS_arr_reporter(const struct RS *rs, int rs_size, struct CA_status * rob_status)
 {
-	struct RS *rs_idx = NULL;
+	const struct RS *rs_idx = NULL;
 	int idx;
 	for (idx = 0; idx < rs_size; ++idx)
 	{
@@ -189,7 +189,7 @@ void RS_arr_reporter(const struct RS *rs, int rs_size, struct CA_status * rob_st
 }
 void ROB_arr_reporter(const struct ROB *rob, struct CA_status rob_status)
 {
-	struct ROB *rob_idx = NULL;
+	const struct ROB *rob_idx = NULL;
 	int idx;
 	for (idx = 0; idx < rob_status.size; ++idx)
 	{
