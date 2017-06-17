@@ -13,99 +13,122 @@ bool read_instruction(FILE *in_filename, struct INST * out_inst)
 
 bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len)
 {		
-
+	printf("Read %s ", filename);
+	
 	//printf("Instruction File Reader\n");
 	//printf("Open %s ",filename);
-	printf("Read %s ", filename);
-
-	FILE* p_file = fopen(filename, "rb");
-	if (p_file== NULL) { printf("- Failed \n"); return false; }//if fail to open file, return false
-	//printf("- Done \n");
-
-	//get file size
-	//printf("File size = ");
-	fseek(p_file, 0, SEEK_END);
-	int p_len = ftell(p_file);
-		//fseek(p_file, -10, SEEK_END);
-		//char tempss[10];
-		//fgets(tempss, 10, p_file);
-		//printf("%s", tempss);
-	fseek(p_file, 0, SEEK_SET);
-	//printf("%dKB\n", sizeof(char)*p_len/1024);
-
-	//all file load on memory
-	//printf("Loading file on memory ");
-	char* p_file_buffer = (char*)calloc(p_len + 1,sizeof(char));
-	if (p_file_buffer == NULL) { printf("\nLack of memory\n"); return false; }
-
-	int read_ith;
-	for  (read_ith = 0; read_ith < (p_len/4096); ++read_ith)
+	char filename_tmp[100];
+	strcpy(filename_tmp,filename);
+	char* thread_name_buffer=strtok(filename_tmp,",");
+	int thread_num=0;
+	while(thread_name_buffer!=NULL)
 	{
-		fread(p_file_buffer+(read_ith*4096), sizeof(char), 4096, p_file);
+		thread_name_buffer=strtok(NULL,",");
+		thread_num++;
 	}
-	int temp=fread(p_file_buffer + (read_ith * 4096), sizeof(char), p_len % 4096, p_file);
-	//printf("%s-%d", p_file_buffer + (read_ith * 4096), temp);
-	//system("PAUSE");
-
-	//Make file always end \n
-	if (p_file_buffer[p_len-1] != '\n'){ p_file_buffer[p_len] = '\n'; ++p_len; }
-	//printf("- Done \n");
-
-	//close file
-	fclose(p_file);
 	
-	//debug - check file end
-	//for (int i = 5000; i > 0; --i)
-	//{
-	//	printf(".%c",*(p_file_buffer-i+p_len));
-	//}
-
-	//Make blank instruction array
-	//printf("Allocate Memory for Instruction Array");
-	int length = 0;
-	for (int p_idx = 0; p_idx < p_len; ++p_idx)
+	char thread_name[thread_num][15];
+	strcpy(thread_name[0],strtok(filename,","));
+	for(int i=1; i<thread_num; i++)
 	{
-		if (p_file_buffer[p_idx]=='\n') { ++length; }
-	}//get line number 
-
-	printf("%d\n",length);
-	(*out_inst_arr)=(struct INST*)malloc(sizeof(struct INST)*length);
-	if ((*out_inst_arr) == NULL) { printf("\nLack of memory\n"); return false; }
-	//printf("- Done \n");
-	printf("%d\n",*out_inst_arr);
-	//Translate File and Fill Instruction
-	//printf("Make Instruction Array -   0%%");
-	printf("-   0%%");
-
-	bool is_worked = true;
-
-	char* p_line = p_file_buffer;//file_pointer_in_memory
-	char* p_token_line;
-	for (int token_length = 0; token_length < length; ++token_length)
-	{
-		//remember start point of line
-		p_token_line = p_line;
-
-		//find next line start point
-		p_line = strchr(p_line, '\n');
-		//(*p_line) = '\0';
-		++p_line;
-
-		//translate this line 
-		//printf("%s", p_token_line);
-		is_worked = ( is_worked && char_to_INST(p_token_line,(*out_inst_arr)+token_length) );
-		
-		if (token_length % (length / 100) == 0)
-		{
-			printf("\b\b\b\b%3d%%", token_length * 100 / length);//for make people not boring
-		}
-		//system("PAUSE");
+		strcpy(thread_name[i],strtok(NULL,","));
 	}
-	(*len) = length;
-	printf("\b\b\b\b100%%\n");
+	
+	struct INST *multi_thread_out[thread_num];
+	
+	for(int i=0; i<thread_num; i++)
+	{
+	
+		FILE* p_file = fopen(filename, "rb");
+		if (p_file== NULL) { printf("- Failed \n"); return false; }//if fail to open file, return false
+		//printf("- Done \n");
+	
+		//get file size
+		//printf("File size = ");
+		fseek(p_file, 0, SEEK_END);
+		int p_len = ftell(p_file);
+			//fseek(p_file, -10, SEEK_END);
+			//char tempss[10];
+			//fgets(tempss, 10, p_file);
+			//printf("%s", tempss);
+		fseek(p_file, 0, SEEK_SET);
+		//printf("%dKB\n", sizeof(char)*p_len/1024);
+	
+		//all file load on memory
+		//printf("Loading file on memory ");
+		char* p_file_buffer = (char*)calloc(p_len + 1,sizeof(char));
+		if (p_file_buffer == NULL) { printf("\nLack of memory\n"); return false; }
+	
+		int read_ith;
+		for  (read_ith = 0; read_ith < (p_len/4096); ++read_ith)
+		{
+			fread(p_file_buffer+(read_ith*4096), sizeof(char), 4096, p_file);
+		}
+		int temp=fread(p_file_buffer + (read_ith * 4096), sizeof(char), p_len % 4096, p_file);
+		//printf("%s-%d", p_file_buffer + (read_ith * 4096), temp);
+		//system("PAUSE");
+	
+		//Make file always end \n
+		if (p_file_buffer[p_len-1] != '\n'){ p_file_buffer[p_len] = '\n'; ++p_len; }
+		//printf("- Done \n");
+	
+		//close file
+		fclose(p_file);
+		
+		//debug - check file end
+		//for (int i = 5000; i > 0; --i)
+		//{
+		//	printf(".%c",*(p_file_buffer-i+p_len));
+		//}
+	
+		//Make blank instruction array
+		//printf("Allocate Memory for Instruction Array");
+		int length = 0;
+		for (int p_idx = 0; p_idx < p_len; ++p_idx)
+		{
+			if (p_file_buffer[p_idx]=='\n') { ++length; }
+		}//get line number 
+	
+		printf("%d\n",length);
+		multi_thread_out[i]=(struct INST*)malloc(sizeof(struct INST)*length);
+		if (multi_thread_out[i] == NULL) { printf("\nLack of memory\n"); return false; }
+		//printf("- Done \n");
+		printf("%d\n",*multi_thread_out[i]);
+		//Translate File and Fill Instruction
+		//printf("Make Instruction Array -   0%%");
+		printf("-   0%%");
+	
 
-	free(p_file_buffer);
-
+	
+		char* p_line = p_file_buffer;//file_pointer_in_memory
+		char* p_token_line;
+		for (int token_length = 0; token_length < length; ++token_length)
+		{
+			//remember start point of line
+			p_token_line = p_line;
+	
+			//find next line start point
+			p_line = strchr(p_line, '\n');
+			//(*p_line) = '\0';
+			++p_line;
+	
+			//translate this line 
+			//printf("%s", p_token_line);
+			is_worked = ( is_worked && char_to_INST(p_token_line,(multi_thread_out[i])+token_length) );
+			
+			if (token_length % (length / 100) == 0)
+			{
+				printf("\b\b\b\b%3d%%", token_length * 100 / length);//for make people not boring
+			}
+			//system("PAUSE");
+		}
+		(*len) = length;
+		printf("\b\b\b\b100%%\n");
+	
+		free(p_file_buffer);
+	}
+	*out_inst_arr=*multi_thread_out;
+	bool is_worked = true;
 	return is_worked;
 }
 
