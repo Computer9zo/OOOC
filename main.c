@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	//read data
 	if (read_all_data(argc, argv, &config, &inst_arr, &inst_len, &inst_num, report_name) != 0) {
 		disp_error();
-		return 1; //if there is error, quit
+		//return 1; //if there is error, quit
 	}
 	
 	//run simulation
