@@ -6,7 +6,7 @@
  * 모듈에는 세 가지 핵심적인 클래스가 있다.
  * 바로 cache_controller (이하 cache_cont)
  * cache (이하 cache) 그리고
- * statistics (이하 statistics) 이다.
+ * statistics (이하 stat) 이다.
  * 이것들을 쓰려면 우선 초기화부터 해야 한다.
  *
  * 준비된 cache_config 자료구조의 포인터를 넣어
