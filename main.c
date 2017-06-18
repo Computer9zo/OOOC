@@ -6,7 +6,7 @@
 
 #include "data_structures.h"
 #include "file_read.h"
-//#include "simulator.h"
+#include "simulator.h"
 
 //long disp functions
 void disp_title(void);

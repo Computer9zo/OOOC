@@ -18,7 +18,7 @@ void FQ_printer(const struct FQ* printed)
 	INST_printer((struct INST*)printed);
 }
 
-void Config_printer(const struct CONFIG* printed)
+void CONFIG_printer(const struct CONFIG* printed)
 {
 	printf("Dump = %d, ", printed->Dump);
 	printf("Width =%5d, ", printed->Width);

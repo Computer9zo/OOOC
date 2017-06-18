@@ -16,7 +16,7 @@ static int cnt_IntAlu = 0;
 static int cnt_MemRead = 0;
 static int cnt_MemWrite = 0;
 
-struct REPORT *core_simulator(struct CONFIG *config, struct INST *arr_inst, int arr_inst_len);
+struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num);
 
 void fetch(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct INST *arr_inst);
 void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct RS *rs_ele, int rs_idx, struct RAT *rat, struct ROB *rob, struct CA_status *rob_status);
@@ -34,28 +34,31 @@ void commit(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_status
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct REPORT *core_simulator(struct CONFIG *config, struct INST *arr_inst, int arr_inst_len)
+struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num)
 {
 	//출력을 위한 공백 확보
 	printf("\n");
 
 	//파일 내 글로벌 초기화
-	pc = 0;
 	cycle = 0;
-	inst_length = arr_inst_len;
-
-	decoded = 0;
-	issued = 0;
 	cnt_IntAlu = 0;
 	cnt_MemRead = 0;
 	cnt_MemWrite = 0;
 
-	// Initializing ...
 
+	decoded = 0;
+	issued = 0;
+
+
+	// Initializing ...
 	int i;
+	
+	//편하게 사용하기 위해 Thread로 인스트럭션을 패키징함
+	struct THREAD*
+
 
 	// RAT
-	struct RAT rat[17]; // 0 means no. rat[1] ~ rat[16] are Arch Register entries
+	struct RAT* rat = (struct RAT**)calloc(arr_num); // 0 means no. rat[1] ~ rat[16] are Arch Register entries
 	for (i = 0; i < 17; i++) { rat[i].Q = 0; rat[i].RF_valid = true; }//initialize
 
 	// Fetch Queue

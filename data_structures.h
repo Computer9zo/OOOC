@@ -13,17 +13,20 @@ const char* instruction_name[3];
 struct CONFIG;     // Config file
 struct REPORT;     // Report file
 struct INST;       // Single Instruction
+struct THREAD;   // Instruction array with length and pc
 struct FQ;         // Single element in Fetch Queue
 struct RAT;        // Single element in Register Address Table
 struct RS;         // Single element in Reservation Station
 struct ROB;        // Single element in ReOrder Buffer
 struct CA_status;  // Status of cyclic array
 
+//creator
+struct THREAD THREAD = 
 
 //for debuging
 void INST_printer(const struct INST* printed); 
 void FQ_printer(const struct FQ* printed);
-void Config_printer(const struct CONFIG* printed);
+void CONFIG_printer(const struct CONFIG* printed);
 void RAT_printer(const struct RAT* printed);
 void RS_printer(const struct RS* printed, struct CA_status* rob_status);
 void ROB_printer(const struct ROB* printed);
@@ -83,6 +86,13 @@ struct INST//instructrion
 	int dest;
 	int oprd_1;
 	int oprd_2;
+};
+
+struct THREAD//pc and length instruction
+{
+	struct INST* instruction;
+	int length;
+	int pc;
 };
 
 struct FQ//equal INST, it mean fetch queue
