@@ -8,7 +8,7 @@
 
 
 
-struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num);
+struct REPORT core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst);
 struct SIMUL_INFO;
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
@@ -26,7 +26,7 @@ void wait(void);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst)
+struct REPORT core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst)
 {
 	//출력을 위한 공백 확보
 	printf("\n");
@@ -63,13 +63,13 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	struct RS_ARR rs = RS_create((*config).RS_size);
 
 	// Load store queue
-	struct RS_ARR lsq = RS_create((*config).RS_size);
+	struct ROB_ARR lsq = ROB_create((*config).RS_size);
 
 	// ReOrdering Buffer
 	struct ROB_ARR rob = ROB_create((*config).ROB_size);
 
 	//check all is accesable
-	if ((rat == NULL) || (rob.ll.head == -1) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.size = 0 )) {
+	if ((rat == NULL) || (rob.ll.head == -1) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.ll.size = 0 )) {
 		return 1;
 	}
 	for (i = 0; i < num_of_inst; j++) {
@@ -78,7 +78,6 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		}
 	}
 	
-
 	//check cycle state
 	bool still_run = false;
 	for (i = 0; i < num_of_inst; j++) {
@@ -107,7 +106,6 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
 		decode_and_value_payback(config, &rob, &rs,&fq,&rat,&info);
 
-
 		// Fetch instructions
 		fetch(config, &fq, threads, &info);
 
@@ -118,9 +116,9 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		case 0:
 			//지겨움 방지
 			//if (pc % (inst_length / 100) == 0)
-			if (info->cycle % 1000 == 1)
+			if (info.cycle % 1000 == 1)
 			{
-				if (cycle == 1)
+				if (info.cycle == 1)
 				{
 					printf("Simulating =");
 				}
@@ -165,20 +163,20 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	free(rat);
 
 	// Write a report
-	struct REPORT ptr_report;
-	ptr_report.Cycles = info->cycle;
-	ptr_report.Total_Insts = inst_length;
-	ptr_report.IntAlu = info->cnt_IntAlu;
-	ptr_report.MemRead = info->cnt_MemRead;
-	ptr_report.MemWrite = info->cnt_MemWrite;
-	ptr_report.IPC = ((double)inst_length / (double) cycle);
+	struct REPORT report;
+	report.Cycles = info.cycle;
+	report.Total_Insts = 0;//inst_length;
+	report.IntAlu = info.cnt_IntAlu;
+	report.MemRead = info.cnt_MemRead;
+	report.MemWrite = info.cnt_MemWrite;
+	report.IPC = 0;// ((double)inst_length / (double)cycle);
 
 
 	if (config->Dump == 0) {printf("100%%");}
 	printf("\n= Final State\n");
-	REPORT_reporter(ptr_report);	// display a report
+	REPORT_reporter(&report);	// display a report
 	printf("\n");
-	return ptr_report;	
+	return report;
 }
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info)
