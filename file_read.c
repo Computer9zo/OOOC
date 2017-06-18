@@ -68,11 +68,9 @@ bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len)
 		if (p_file_buffer[p_idx]=='\n') { ++length; }
 	}//get line number 
 
-	printf("%d\n",length);
 	(*out_inst_arr)=(struct INST*)malloc(sizeof(struct INST)*length);
 	if ((*out_inst_arr) == NULL) { printf("\nLack of memory\n"); return false; }
 	//printf("- Done \n");
-	printf("%d\n",*out_inst_arr);
 	//Translate File and Fill Instruction
 	//printf("Make Instruction Array -   0%%");
 	printf("-   0%%");
@@ -81,7 +79,7 @@ bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len)
 
 	char* p_line = p_file_buffer;//file_pointer_in_memory
 	char* p_token_line;
-	for (int token_length = 0; token_length < length; ++token_length)
+	for (int token_length = 0; (token_length < length); ++token_length)
 	{
 		//remember start point of line
 		p_token_line = p_line;
@@ -94,8 +92,8 @@ bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len)
 		//translate this line 
 		//printf("%s", p_token_line);
 		is_worked = ( is_worked && char_to_INST(p_token_line,(*out_inst_arr)+token_length) );
-		
-		if (token_length % (length / 100) == 0)
+
+		if (token_length % (length<100?1:length/100) == 0)
 		{
 			printf("\b\b\b\b%3d%%", token_length * 100 / length);//for make people not boring
 		}
@@ -112,7 +110,6 @@ bool make_inst_array(char* filename, struct INST ** out_inst_arr, int *len)
 bool char_to_INST(char* buffer, struct INST * out_inst)
 {
 	char* inst_name = strtok(buffer, " ");
-
 	switch (inst_name[3])
 	{
 	case 'A':
@@ -125,7 +122,7 @@ bool char_to_INST(char* buffer, struct INST * out_inst)
 		out_inst->opcode = MemWrite;
 		break;
 	default:
-		printf("Instruction read failed \n");
+		//printf("Instruction read failed \n");
 		return false;
 	}
 	out_inst->dest = atoi(strtok(NULL, " "));
