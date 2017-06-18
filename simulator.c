@@ -11,17 +11,15 @@
 struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num);
 struct SIMUL_INFO;
 
-void fetch(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct INST *arr_inst);
-void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct RS *rs_ele, int rs_idx, struct RAT *rat, struct ROB *rob, struct CA_status *rob_status);
-void value_payback(struct RS *rs_ele, struct ROB *rob);
+void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
+void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, int* decoded, struct SIMUL_INFO *info);
+void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
 void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info);
-
-void issue(struct CONFIG *config, struct RS *rs_ele);
-
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq);
+void issue(struct CONFIG *config, struct RS *rs_ele, int* issued);
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct RS_ARR *lsq);
-void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat);
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq);
+void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info);
 
 void wait(void);
 
@@ -35,11 +33,13 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 
 	//파일 내 글로벌 초기화
 	struct SIMUL_INFO info;
+	info.num_of_inst = num_of_inst;
 	info.cnt_IntAlu = 0;
 	info.cnt_MemRead = 0;
 	info.cnt_MemWrite = 0;
 	info.cycle = 0;
-	
+	info.currnt_fetch = 0;
+
 	// Initializing ...
 	int i;
 	int j;
@@ -99,17 +99,17 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
-		commit(config, &rob, num_of_inst, rat);
+		commit(config, &rob, rat, &info);
 
 		ex_and_issue(config, &rob, &rs, &lsq);
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
-		decode_and_value_payback(config, rob, &rob_status, rs,is_completed_this_cycle, fetch_queue,&fq_status,rat);
+		decode_and_value_payback(config, &rob, &rs,&fq,&rat,&info);
 
 
 		// Fetch instructions
-		fetch(config, fetch_queue, &fq_status, arr_inst);
+		fetch(config, &fq, threads, &info);
 
 
 		// Dump
@@ -118,7 +118,7 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		case 0:
 			//지겨움 방지
 			//if (pc % (inst_length / 100) == 0)
-			if (cycle % 1000 == 1)
+			if (info->cycle % 1000 == 1)
 			{
 				if (cycle == 1)
 				{
@@ -149,26 +149,29 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		
 
 
-	} do
+	}
 
 	// Simulation finished
 	
 	//free array
-	free(fetch_queue);
-	free(rs);
-	free(rob);
+	FQ_delete(fq);
+	RS_delete(rs);
+	ROB_delete(rob);
+	ROB_delete(lsq);
 
-	free(is_completed_this_cycle);
-	
+	for (i = 0; i < info->num_of_inst; ++i) {
+		RAT_delete(rat[i]);
+	}
+	free(rat);
 
 	// Write a report
-	struct REPORT *ptr_report = malloc(sizeof(struct REPORT));
-	(*ptr_report).Cycles = cycle;
-	(*ptr_report).Total_Insts = inst_length;
-    (*ptr_report).IntAlu = cnt_IntAlu;
-	(*ptr_report).MemRead = cnt_MemRead;
-	(*ptr_report).MemWrite = cnt_MemWrite;
-	(*ptr_report).IPC = ((double)inst_length / (double) cycle);
+	struct REPORT ptr_report;
+	ptr_report.Cycles = info->cycle;
+	ptr_report.Total_Insts = inst_length;
+	ptr_report.IntAlu = info->cnt_IntAlu;
+	ptr_report.MemRead = info->cnt_MemRead;
+	ptr_report.MemWrite = info->cnt_MemWrite;
+	ptr_report.IPC = ((double)inst_length / (double) cycle);
 
 
 	if (config->Dump == 0) {printf("100%%");}
@@ -180,16 +183,46 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info)
 {
-	int fetch_num = ((*config).Width > info-fetch_blank) ? fetch_blank : (*config).Width;
-	int i;
-	for (i = 0; i < fetch_num && pc < inst_length; i++)
-	{
-		fetch_queue[ca_next_pos(fq_status)].opcode = arr_inst[pc].opcode;
-		fetch_queue[ca_next_pos(fq_status)].dest = arr_inst[pc].dest;
-		fetch_queue[ca_next_pos(fq_status)].oprd_1 = arr_inst[pc].oprd_1;
-		fetch_queue[ca_next_pos(fq_status)].oprd_2 = arr_inst[pc].oprd_2;
-		ca_cnt_push(fq_status);
-		pc++;
+
+	if (info->currnt_fetch >= 0)
+	{//아직 fetch하지 않은 inst가 남아있다면,
+		int fetch_num = ((*config).Width > info->fetch_blank) ? info->fetch_blank : (*config).Width;
+		int i;
+		struct THREAD * current_thread = inst + (info->currnt_fetch);
+		struct INST* current_inst;
+		struct FQ* fq_ele;
+	
+
+		for (i = 0; i < fetch_num; i++)
+		{
+			//대입
+			fq_ele = (fetch_queue->fq) + (ca_next_pos(&(fetch_queue->ca)));
+			current_inst = (current_thread->instruction) + (current_thread->pc);
+
+			fq_ele->opcode = current_inst->opcode;
+			fq_ele->dest = current_inst->dest;
+			fq_ele->oprd_1 = current_inst->oprd_1;
+			fq_ele->oprd_2 = current_inst->oprd_2;
+			fq_ele->inst_num = info->currnt_fetch;
+
+			//수량 갱신
+			ca_cnt_push(&(fetch_queue->ca));
+			++(current_thread->pc);
+
+			//다음 current_thread 정하기
+			for (int j = 1; j <= info->num_of_inst; ++j) {
+				current_thread = inst + (((info->currnt_fetch)+j)%(info->num_of_inst));
+				if (current_thread->length != current_thread->pc) {
+					break;
+				}
+			}
+			if (current_thread->length == current_thread->pc) {
+				info->currnt_fetch = -1;
+				break;
+			}
+
+		}
+	
 	}
 }
 
@@ -401,7 +434,7 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 	(*rs_ele).is_valid = false;
 }
 
-void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat)
+void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info)
 {
 	int i;//iter
 	struct ROB* rob_ptr;//for easier code
@@ -410,8 +443,8 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct 
 
 	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크
 	bool commit_done = false;
-	bool* thread_commit = (bool*)calloc(num_of_inst,sizeof(bool));
-	for (i = 1; i < num_of_inst; ++i) { thread_commit[i] = true; }
+	bool* thread_commit = (bool*)calloc(info->num_of_inst,sizeof(bool));
+	for (i = 1; i < info->num_of_inst; ++i) { thread_commit[i] = true; }
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
@@ -432,7 +465,7 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct 
 				
 				//inst 커밋이 하나 끝날 때마다 전체 inst 커밋이 끝났는지 검사
 				commit_done = true;
-				for (i = 1; i < num_of_inst; ++i) { 
+				for (i = 1; i < info->num_of_inst; ++i) {
 					commit_done &= (!thread_commit[i]);
 				}
 			}
@@ -455,6 +488,8 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct 
 
 struct SIMUL_INFO
 {
+	int num_of_inst;
+
 	int cycle;
 	int cnt_IntAlu;
 	int cnt_MemRead;
@@ -462,4 +497,5 @@ struct SIMUL_INFO
 
 	int fetch_blank;
 	int ROB_blank;
+	int currnt_fetch;
 };
