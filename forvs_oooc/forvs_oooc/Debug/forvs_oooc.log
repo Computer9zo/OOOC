@@ -1,12 +1,16 @@
-﻿  main.c
+﻿  simulator.c
+  main.c
 f:\deposit\local git\oooc\main.c(40): warning C4101: 'report': unreferenced local variable
   file_read.c
-f:\deposit\local git\oooc\file_read.c(30): error C2057: expected constant expression
-f:\deposit\local git\oooc\file_read.c(30): error C2466: cannot allocate an array of constant size 0
-f:\deposit\local git\oooc\file_read.c(30): error C2133: 'thread_name': unknown size
-f:\deposit\local git\oooc\file_read.c(37): error C2057: expected constant expression
-f:\deposit\local git\oooc\file_read.c(37): error C2466: cannot allocate an array of constant size 0
-f:\deposit\local git\oooc\file_read.c(37): error C2133: 'multi_thread_out': unknown size
-f:\deposit\local git\oooc\file_read.c(117): error C2065: 'is_worked': undeclared identifier
-f:\deposit\local git\oooc\file_read.c(96): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'INST'
+f:\deposit\local git\oooc\file_read.c(20): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(20): warning C4024: 'strcpy': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(21): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(21): warning C4024: 'strtok': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(28): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(28): warning C4024: 'strcpy': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(35): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(35): warning C4024: 'strtok': different types for formal and actual parameter 1
+  data_structures.c
   Generating Code...
+  forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.exe
+  forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.pdb (Partial PDB)

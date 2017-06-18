@@ -37,6 +37,8 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 		thread_name[i] = strtok(NULL,",");
 	}
 	
+	printf("\n");
+
 	//make storage
 	struct INST **multi_thread_out = (struct INST **)calloc(thread_num,sizeof(struct INST*));
 
@@ -81,7 +83,7 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 		if (multi_thread_out[i] == NULL) { printf("\nLack of memory\n"); return false; }
 		
 
-		printf("\nInstruction file %d read ",*multi_thread_out[i]);
+		printf("Instruction file %d read ",i);
 		printf("-   0%%");
 	
 		//pasing data and make inst array
@@ -92,15 +94,15 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 		{
 			//remember start point of line
 			p_token_line = p_line;
-	
+			
 			//find next line start point
 			p_line = strchr(p_line, '\n');
-			//(*p_line) = '\0';
+			*p_line = 0;//strtok = div string
 			++p_line;
-	
+
 			//translate this line 
-			if (char_to_INST(p_token_line, (multi_thread_out[i]) + token_length)) {
-				printf("\nNot good file!\n", *multi_thread_out[i]);
+			if (!char_to_INST(p_token_line, (multi_thread_out[i]) + token_length)) {
+				printf("\nNot good file!\n");
 				return false;
 			}
 			
@@ -125,7 +127,7 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 bool char_to_INST(char* buffer, struct INST * out_inst)
 {
 	char* inst_name = strtok(buffer, " ");
-
+	if (inst_name == NULL) { return false; }
 	switch (inst_name[3])
 	{
 	case 'A':
@@ -151,12 +153,13 @@ bool char_to_INST(char* buffer, struct INST * out_inst)
 
 bool config_reader(char* filename, struct CONFIG *out_config)
 {
-	char buffer[30];
+	char buffer[30]; buffer[0] = 0;
 	FILE *configp;
 	if ((configp = fopen(filename, "r")) == NULL) { return false; }//if configp == null, it mean fail.
 	for (int idx = 0; idx < 4; ++idx)
 	{
 		fgets(buffer, 30, configp);
+		if (buffer[0] == 0) { return false; }//there is lack of arg
 		switch (idx)
 		{
 		case 0: out_config->Dump = atoi(buffer); break;

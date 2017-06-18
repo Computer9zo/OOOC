@@ -25,20 +25,20 @@ int main(int argc, char* argv[])
 
 	//declear data containers
 	struct CONFIG config; //config
-	struct INST** inst_arr;//inst_arr's array
-	int*          inst_len;//inst_arr's length array
-	int           inst_num;//inst_arr's array length
-	char		  report_name[256];//report filename
+	struct INST** inst_arr = NULL;//inst_arr's array
+	int*          inst_len = NULL;//inst_arr's length array
+	int           inst_num = 0;//inst_arr's array length
+	char		  report_name[256]; report_name[0] = 0;//report filename 
 
 	//read data
 	if (read_all_data(argc, argv, &config, &inst_arr, &inst_len, &inst_num, report_name) != 0) {
 		disp_error();
-		//return 1; //if there is error, quit
+		return 1; //if there is error, quit
 	}
 	
 	//run simulation
 	struct REPORT report;
-	//report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
+	report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
 
 	//print out report
 	FILE* f_report = fopen(report_name, "w");
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	//REPORT_fprinter(&report, f_report);
+	REPORT_fprinter(&report, f_report);
 	fclose(f_report);
 	
 	printf("Report saved : %s", report_name);
@@ -125,21 +125,25 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 	else {
 		//mem alloc
 		*out_inst_num = (argc - 2);
-		*out_inst_len = (int*)calloc(*out_inst_num, sizeof(int));
-		*out_inst_arrs= (struct INST**)calloc(*out_inst_num, sizeof(struct INST*));
 
 		//data read
+		printf("Read config %s\n", argv[1]);
 		if (!config_reader(argv[1], out_config)) {
 			printf("Config read error!\n");
-			return 1;
+			//	return 1;
 		}
 
-		for (int idx = *out_inst_num; idx > 0; --idx) {
-			if (!make_inst_array(argv[idx + 1], (*out_inst_arrs) + idx - 1, (*out_inst_len) + idx - 1)) {
-				printf("Data read error %d\n", idx);
-				return 1;
-			}
+		//inst reading
+		char* inst_filename = (char*)calloc(256 * (*out_inst_num), sizeof(char));
+		for (int idx = (*out_inst_num); idx > 0; --idx) {
+			strcat(inst_filename, ",");
+			strcat(inst_filename, argv[idx+1]);
 		}
+		if (!make_inst_array(inst_filename+1, out_inst_arrs, out_inst_len)) {
+			printf("Data read error\n");
+			//return 1;
+		}
+		free(inst_filename);
 
 		//make report name
 		strcat(report_name, get_filename(argv[1]));
@@ -159,7 +163,7 @@ int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_n
 	}
 	free(out_inst_arrs);
 	free(out_inst_len);
-
+	
 	return 0;
 }
 
