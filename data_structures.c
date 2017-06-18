@@ -5,6 +5,86 @@
 
 const char* instruction_name[3] = { "IntALU", "MemRead" , "MemWrite" };
 
+struct THREAD THREAD_create(struct INST* inst_arr, int inst_len)
+{
+	struct THREAD result;
+	result.instruction = inst_arr;
+	result.length = inst_len;
+	result.pc = 0;
+	return result;
+}
+
+struct RAT_ARR RAT_create(int num_of_register)
+{
+	struct RAT_ARR result;
+	result.rat = (struct RAT*)calloc(num_of_register, sizeof(struct RAT));
+	result.size = num_of_register;
+
+	if (result.rat == NULL) { result.size = 0; } //no mem
+
+	for (int i = 0; i < result.size; i++) {
+		result.rat[i].Q = 0; result.rat[i].RF_valid = true;
+	}//initialize
+	return result;
+}
+void RAT_delete(struct RAT_ARR rat)
+{
+	free(rat.rat);
+}
+
+struct FQ_ARR FQ_create(int size_of_queue)
+{
+	struct FQ_ARR FQ;
+	FQ.fq = calloc(size_of_queue , sizeof(struct FQ));//struct FQ fetch_queue[2 * (*config).Width]
+	FQ.ca.size = size_of_queue;
+	FQ.ca.head = 0;
+	FQ.ca.occupied = 0;
+
+	if (FQ.fq == NULL) { FQ.ca.size = 0; }
+
+	return FQ;
+}
+void FQ_delete(struct FQ_ARR fq_arr)
+{
+	free(fq_arr.fq);
+}
+
+struct RS_ARR RS_create(int size_of_queue)
+{
+	struct RS_ARR result;
+	
+	result.rs = (struct RS *)calloc(size_of_queue, sizeof(struct RS));
+	result.size = size_of_queue;
+
+	if (result.rs == NULL ) { result.size = 0; }
+
+	for (int i = 0; i < result.size; i++) {
+		result.rs[i].is_valid = false; result.rs[i].is_completed_this_cycle = false;
+	}//initialize
+
+	return result;
+}
+void RS_delete(struct RS_ARR rs_arr)
+{
+	free(rs_arr.rs);
+}
+
+struct ROB_ARR ROB_create(int size_of_queue)
+{
+	struct ROB_ARR result;
+	result.rob = (struct ROB*)calloc(size_of_queue, sizeof(struct ROB));
+	result.ll = ll_cnt_init(size_of_queue);
+
+	if ( (result.rob == NULL) || (result.ll.next == NULL) || (result.ll.prev = NULL) ) { result.ll.head = -1; }
+
+	return result;
+}
+void ROB_delete(struct ROB_ARR rob_arr)
+{
+	free(rob_arr.rob);
+	ll_delete(&(rob_arr.ll));
+}
+
 void INST_printer(const struct INST* printed)
 {//print inst
 	printf("%-10s", instruction_name[printed->opcode]);
@@ -242,41 +322,56 @@ int ca_get_cidx(int idx, struct CA_status *status)
 	return ( idx - (*status).head + (*status).size ) % (*status).size;
 }
 
-//
-//#include <stdlib.h>
-//
-//
-//int main(void)
-//{
-//	struct INST inst = { 2,2,2,3 };
-//	struct FQ fq = { 1,2,2,3 };
-//	struct Config config = { 0 ,1 , 2 , 3 };
-//	struct RAT rat1 = { Q , 12 };
-//	struct RAT rat2 = { V , 12 };
-//	struct RS rs1 = { 10, false ,1, 2, {V, 12},{ Q, 13 } };
-//	struct RS rs2 = { 10, true ,2, -2,{ V, 12 },{ Q, 13 } };
-//	struct ROB rob1 = { 0 ,1 , C };
-//	struct ROB rob2 = { 0 ,2 , P };
-//	struct ROB rob3 = { 1 ,-2 , P };
-//
-//	INST_printer(&inst);
-//	FQ_printer(&fq);
-//	Config_printer(&config);
-//	RAT_printer(&rat1);
-//	RAT_printer(&rat2);
-//	RS_printer(&rs1);
-//	RS_printer(&rs2);
-//	ROB_printer(&rob1);
-//	ROB_printer(&rob2);
-//	ROB_printer(&rob3);
-//
-//	system("PAUSE");
-//
-//	FILE* fid=fopen("test.out", "w");
-//	RS_fprinter(&rs1, fid);
-//	RS_fprinter(&rs2, fid);
-//	ROB_fprinter(&rob1, fid);
-//	ROB_fprinter(&rob3, fid);
-//	fclose(fid);
-//}
-//
+struct LL_status ll_cnt_init(int size)
+{
+	struct LL_status result;
+	result.head = 0;
+	result.tail = 0;
+	result.occupied = 0;
+	result.size = size;
+	result.next = (int*)calloc(size, sizeof(int));
+	result.prev = (int*)calloc(size, sizeof(int));
+	if (result.next == NULL || result.prev == NULL) { result.size = 0; return result; }
+
+	for (int i = 0; i<result.size; ++i){
+		result.next[i] = i + 1;
+		result.prev[i] = i - 1;
+	}
+	result.next[result.size -1] = 0;
+	result.prev[0] = size-1;
+
+	return result;
+}
+
+void ll_cnt_pop(struct LL_status *status, int pop_num)
+{
+	//전단계의 원소의 next를 현재 원소의 next로 다음 단계의 prev를 현재 원소의 prev로
+	status->next[status->prev[pop_num]] = status->next[pop_num];
+	status->prev[status->next[pop_num]] = status->prev[pop_num];
+
+	//현재 원소는 맨 끝의 원소 뒤에 붙이고, 0을 가르키게 한다.
+	status->next[status->prev[status->head]] = pop_num;
+	status->prev[pop_num] = status->prev[status->head];
+	status->next[pop_num] = status->head;
+	status->prev[status->head] = pop_num;
+
+	//그리고 점유를 하나 뺀다
+	--(status->occupied);
+}
+
+void ll_cnt_push(struct LL_status *status)
+{
+	++(status->occupied);
+	status->tail = status->next[status->tail];
+}
+
+int ll_next_pos(struct LL_status *status, int origin_pos)
+{
+	return status->next[origin_pos];
+}
+
+void ll_delete(struct LL_status *status)
+{
+	free(status->next);
+	free(status->prev);
+}

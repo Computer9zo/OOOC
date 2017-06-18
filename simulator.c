@@ -30,11 +30,11 @@ void ex_and_issue(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_
 
 void wait(void);
 
-void commit(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_status, struct RAT *rat);
+void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num)
+struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst)
 {
 	//출력을 위한 공백 확보
 	printf("\n");
@@ -46,62 +46,71 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	cnt_MemWrite = 0;
 
 
-	decoded = 0;
-	issued = 0;
-
+	int decoded = 0;
 
 	// Initializing ...
 	int i;
-	
+	int j;
+
 	//편하게 사용하기 위해 Thread로 인스트럭션을 패키징함
-	struct THREAD*
-
-
-	// RAT
-	struct RAT* rat = (struct RAT**)calloc(arr_num); // 0 means no. rat[1] ~ rat[16] are Arch Register entries
-	for (i = 0; i < 17; i++) { rat[i].Q = 0; rat[i].RF_valid = true; }//initialize
-
-	// Fetch Queue
-	struct FQ* fetch_queue = calloc(2 * (*config).Width, sizeof(struct FQ) );//struct FQ fetch_queue[2 * (*config).Width]
-	struct CA_status fq_status;
-	fq_status.size = 2 * (*config).Width;
-	fq_status.head = 0;
-	fq_status.occupied = 0;
-
-	// Reservation Station
-	struct RS* rs = calloc((*config).RS_size, sizeof(struct RS)); //struct RS rs[(*config).RS_size];
-	// is_completed_this_cycle? to prevent issue of insturction in RS which has V value promoted from Q in current cycle.
-	bool* is_completed_this_cycle = calloc((*config).RS_size, sizeof(bool));//bool is_completed_this_cycle[(*config).ROB_size];
-	for (i = 0; i < (*config).RS_size; i++) { rs[i].is_valid = false; is_completed_this_cycle[i] = false;}//initialize
-
-	// ReOrdering Budder
-	struct ROB* rob = calloc((*config).ROB_size, sizeof(struct ROB));//struct ROB rob[(*config).ROB_size];
-	struct CA_status rob_status;
-	rob_status.size = (*config).ROB_size;
-	rob_status.head = 0;
-	rob_status.occupied = 0;
-	
-	//check all is accesable
-	if (fetch_queue==NULL|| rs==NULL || rob==NULL|| is_completed_this_cycle==NULL)
-	{//error
-		return NULL;
+	struct THREAD threads[] = (struct THREAD*)calloc(num_of_inst, sizeof(struct THREAD));
+	for (i = 0; i < num_of_inst; ++i) {
+		threads[i] = THREAD_create(arr_inst[i], arr_inst_len[i]);
 	}
 
-	do
+	// RAT
+	struct RAT_ARR rat[] = (struct RAT_ARR*)calloc(num_of_inst,sizeof(struct RAT_ARR));
+	for (i = 0; i < num_of_inst; ++i) {
+		rat[i]=RAT_create(17); // 0 means no. rat[1] ~ rat[16] are Arch Register entries
+	}
+
+	// Fetch Queue
+	struct FQ_ARR fq = FQ_create(2 * (*config).Width);
+	fq.ca.size== 0;
+	// Reservation Station
+	struct RS_ARR rs = RS_create((*config).RS_size);
+
+	// Load store queue
+	struct RS_ARR lsq = RS_create((*config).RS_size);
+
+	// ReOrdering Buffer
+	struct ROB_ARR rob = ROB_create((*config).ROB_size);
+
+	//check all is accesable
+	if ((rat == NULL) || (rob.ll.head == -1) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.size = 0 )) {
+		return 1;
+	}
+	for (i = 0; i < num_of_inst; j++) {
+		if (rat[j].size == 0){
+			return 1;
+		}
+	}
+	
+
+	//check cycle state
+	bool still_run = false;
+	for (i = 0; i < num_of_inst; j++) {
+		//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
+		still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
+	}
+	
+	while (still_run);
 	{	
-		//cycle pluse
+		//cycle plus
 		cycle++;
 
 		//각 명령의 실행 횟수를 초기화한다.
-		fetch_blank = (fq_status.size - fq_status.occupied);//패치큐가 얼마나 비었는지 확인
-		ROB_blank = (rob_status.size - rob_status.occupied);//ROB가 얼마나 비었는지 확인
+		fetch_blank = (fq.ca.size - fq.ca.occupied);//패치큐가 얼마나 비었는지 확인
+		ROB_blank = (rob.ll.size - rob.ll.occupied);//ROB가 얼마나 비었는지 확인
+		
 		decoded = 0;
 		issued = 0;
 
 		//Loop1
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
+		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
-		commit(config, rob, &rob_status, rat);
+		commit(config, &rob, num_of_inst, rat);
 
 		ex_and_issue(config, rob, &rob_status, rs, is_completed_this_cycle);
 
@@ -151,7 +160,7 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 		
 
 
-	} while (fq_status.occupied>0 || rob_status.occupied > 0);
+	} do
 
 	// Simulation finished
 	
@@ -268,7 +277,7 @@ void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_
 	}
 }
 
-void value_payback(struct RS *rs_ele, struct ROB *rob)
+void value_payback(struct RS *rs_ele, struct ROB_ARR *rob)
 {
 	if (rs_ele->time_left<0)//if it isn't issued
 	{
@@ -285,12 +294,12 @@ void value_payback(struct RS *rs_ele, struct ROB *rob)
 	}
 }
 
-void decode_and_value_payback(struct CONFIG * config, struct ROB *rob, struct CA_status *rob_status, struct RS * rs, bool *is_completed_this_cycle, struct FQ * fetch_queue, struct CA_status * fq_status, struct RAT * rat)
+void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat)
 {
 	// For every entries in Reservation Station,
-	for (int i = 0; i < (*config).RS_size; i++)
+	for (int i = 0; i < rs->size; i++)
 	{
-		if (rs[i].is_valid) // Instruction is inside this entry of RS
+		if (rs->rs[i].is_valid) // Instruction is inside this entry of RS
 		{
 			value_payback(rs + i, rob);//check args is ready.
 		}
@@ -310,32 +319,34 @@ void decode_and_value_payback(struct CONFIG * config, struct ROB *rob, struct CA
 }
 
 
-void issue(struct CONFIG *config, struct RS *rs_ele)
+void issue(struct CONFIG *config, struct RS *rs_ele, int* issued)
 {
-	if (issued < (*config).Width)
+	if (*issued < (*config).Width)
 	{//아직 width만큼 issue가 되지 않았다면
 		if ((*rs_ele).oprd_1.state == V &&
 			(*rs_ele).oprd_2.state == V)
 		{//issue 조건을 검사하고 만족한다면, issue를 한다.
-
-			(*rs_ele).time_left = ((*rs_ele).opcode == MemRead) ? 2 : 0;
-			++issued;
-
-		}
-			
+			(*rs_ele).time_left = 0;
+			++(*issued);
+		}			
 	}
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, bool *is_completed_this_cycle)
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq)
 {
 	//if ( executed < (*config).Width)
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 
 	if (rs_ele->time_left == 0)
-	{//만약 실행 대기중이라면, 실행하고 RS를 비운 다음 ROB를 C 상태로 바꾼다.
+	{//만약 실행 대기중이라면, 
 		
-		rs_retire(rs_ele, rob_ele);
-		(*is_completed_this_cycle) = true;
+		if (rs_ele->opcode = IntAlu) {//alu 펑션이라면 실행하고 RS를 비운 다음 ROB를 C 상태로 바꾼다.
+			rs_retire(rs_ele, rob_ele);
+		}
+		else {//alu 펑션이 아니라면 메모리 주소가 끝났으니 lsq의 작업을 시작시킨다
+			lsq_issue(rs_ele, lsq);//현재 문제. lsq 작업 시작은 rs큐랑은 달라서 계속 호출하게 될 수 있음
+		}
+		rs_ele->is_completed_this_cycle = true;
 
 	}
 	else
@@ -345,28 +356,36 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, bool *is_completed_this_cyc
 
 }
 
-void ex_and_issue(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_status, struct RS *rs, bool *is_completed_this_cycle)
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct RS_ARR *lsq)
 {
 	int i;
-	struct ROB * rob_ele;
+
+	struct ROB* rob_ptr;
+	int rob_ptr_idx;
 	struct RS  * rs_ele;
-	for (i = 0; i < (rob_status->occupied); ++i)
+
+	int issued = 0;
+
+	//start from head
+	rob_ptr_idx = rob->ll.head;
+	rob_ptr = (rob->rob) + (rob_ptr_idx);
+	
+	for (i = 0; i < (rob->ll.occupied); ++i)
 	{//모든 원소에 대해, 검사한다
 
-		rob_ele = rob + ((rob_status->head + i) % rob_status->size);
-		if (rob_ele->status == P)
+		if (rob_ptr->status == P)
 		{//만약 상태가 P라면, 이는 issue의 대상과 ex의 대상을 포함한다.
 			
-			rs_ele = (rs + (rob_ele->rs_dest));
+			rs_ele = (rs->rs) + (rob_ptr->rs_dest);
 
 			if (rs_ele->time_left >= 0)
 			{//만약 Issue 되었다면
-				execute(rs + (rob_ele->rs_dest), rob_ele, is_completed_this_cycle + (rob_ele->rs_dest));
+				execute(rs_ele, rob_ptr, lsq);
 				//실행 및 실행 완료한다.
 			}
 			else
 			{//만약 Issue 안되었다면
-				issue(config, rs_ele);
+				issue(config, rs_ele, &issued);
 				//이슈 조건을 검사하고 부합할 경우 이슈한다.
 			}
 
@@ -388,29 +407,54 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 	(*rs_ele).is_valid = false;
 }
 
-void commit(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_status, struct RAT *rat)
+void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat)
 {
-	int i;
-	int num_of_search;
-	struct ROB* rob_head;
-	// Only permits upto N commits
-	num_of_search = (*config).Width > (*rob_status).occupied ? (*rob_status).occupied : (*config).Width;
+	int i;//iter
+	struct ROB* rob_ptr;//for easier code
+	int rob_ptr_idx;
+	int remain_of_search = (*config).Width;// Only permits upto N commits
 
-	//현재 ROB의 원소 개수와 Width 중 작은 숫자까지만 확인하면 됨.
-	//왜냐면 최대 커밋은 연속적으로 C인 경우에만 Width까지 가능하고(최대한 줄여도 Head - Width 사이)
-	//원소 개수가 Width보다 작다면, 최대 커밋은 원소 개수까지만 가능하기 때문.
+	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크
+	bool commit_done = false;
+	bool* thread_commit = (bool*)calloc(num_of_inst,sizeof(bool));
+	for (i = 1; i < num_of_inst; ++i) { thread_commit[i] = true; }
 
-	for (i = 0; i < num_of_search; i++)
-	{
-		rob_head = rob + (rob_status->head);
-		if ( (rob_head->status) == C)
-		{
-			rat[rob_head->dest].RF_valid = true;
-			ca_cnt_pop(rob_status);
+	//start from head
+	rob_ptr_idx = rob->ll.head;
+	rob_ptr = (rob->rob)+(rob_ptr_idx);
+	do{
+
+		if (thread_commit[rob_ptr->inst_num])
+		{//아직 해당 inst의 커밋이 끝나지 않았다면,
+			switch (rob_ptr->status)
+			{
+			case C:
+				rat[rob_ptr->inst_num].rat[rob_ptr->dest].RF_valid = true;
+				ll_cnt_pop(&(rob->ll), rob_ptr_idx);
+				--remain_of_search;
+				break;
+			case P:
+				thread_commit[rob_ptr->inst_num] = false;
+				
+				//inst 커밋이 하나 끝날 때마다 전체 inst 커밋이 끝났는지 검사
+				commit_done = true;
+				for (i = 1; i < num_of_inst; ++i) { 
+					commit_done &= (!thread_commit[i]);
+				}
+			}
 		}
-		else
+
+		//다음 ROB로 포인터를 옮긴다
+		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr = (rob->rob) + (rob_ptr_idx);
+
+		//종료 조건 검사
+		if (commit_done || //커밋이 끝났거나
+			remain_of_search == 0 || //이미 width만큼 커밋했거나
+			rob_ptr_idx == rob->ll.head) //이미 전부 검사했다면
 		{
 			break;
 		}
-	}
+			
+	} while (true);
 }

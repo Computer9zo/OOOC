@@ -115,12 +115,14 @@
     <None Include="..\..\.gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\cache.c" />
     <ClCompile Include="..\..\data_structures.c" />
     <ClCompile Include="..\..\file_read.c" />
     <ClCompile Include="..\..\main.c" />
     <ClCompile Include="..\..\simulator.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\cache.h" />
     <ClInclude Include="..\..\data_structures.h" />
     <ClInclude Include="..\..\file_read.h" />
     <ClInclude Include="..\..\header_path.h" />
