@@ -136,7 +136,7 @@ struct FQ//equal INST, it mean fetch queue
 	int dest;
 	int oprd_1;
 	int oprd_2;
-	int inst_num
+	int inst_num;
 };
 
 struct FQ_ARR//fetch queue

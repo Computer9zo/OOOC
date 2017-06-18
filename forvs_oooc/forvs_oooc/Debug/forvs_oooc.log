@@ -1,16 +1,3 @@
-﻿  simulator.c
-  main.c
-f:\deposit\local git\oooc\main.c(40): warning C4101: 'report': unreferenced local variable
-  file_read.c
-f:\deposit\local git\oooc\file_read.c(20): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
-f:\deposit\local git\oooc\file_read.c(20): warning C4024: 'strcpy': different types for formal and actual parameter 1
-f:\deposit\local git\oooc\file_read.c(21): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
-f:\deposit\local git\oooc\file_read.c(21): warning C4024: 'strtok': different types for formal and actual parameter 1
-f:\deposit\local git\oooc\file_read.c(28): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
-f:\deposit\local git\oooc\file_read.c(28): warning C4024: 'strcpy': different types for formal and actual parameter 1
-f:\deposit\local git\oooc\file_read.c(35): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
-f:\deposit\local git\oooc\file_read.c(35): warning C4024: 'strtok': different types for formal and actual parameter 1
-  data_structures.c
-  Generating Code...
+﻿  main.c
   forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.exe
   forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.pdb (Partial PDB)

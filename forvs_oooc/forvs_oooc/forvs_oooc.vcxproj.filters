@@ -28,10 +28,10 @@
     <ClCompile Include="..\..\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\simulator.c">
+    <ClCompile Include="..\..\cache.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\cache.c">
+    <ClCompile Include="..\..\simulator.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -4,33 +4,27 @@
 #include "data_structures.h"
 
 //파일 내 글로벌로 선언
-static int inst_length;
-static int pc = 0;
-static int cycle = 1;
 
-static int fetch_blank = 0;
-static int decoded = 0;
-static int issued = 0;
-static int ROB_blank = 0;
-static int cnt_IntAlu = 0;
-static int cnt_MemRead = 0;
-static int cnt_MemWrite = 0;
+
+
 
 struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int arr_num);
+struct SIMUL_INFO;
 
 void fetch(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct INST *arr_inst);
 void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct RS *rs_ele, int rs_idx, struct RAT *rat, struct ROB *rob, struct CA_status *rob_status);
 void value_payback(struct RS *rs_ele, struct ROB *rob);
-void decode_and_value_payback(struct CONFIG * config, struct ROB *rob, struct CA_status *rob_status, struct RS * rs, bool *is_completed_this_cycle, struct FQ * fetch_queue, struct CA_status * fq_status, struct RAT * rat);
+void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info);
 
 void issue(struct CONFIG *config, struct RS *rs_ele);
-void execute(struct RS *rs_ele, struct ROB* rob_ele, bool *is_completed_this_cycle);
+
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
-void ex_and_issue(struct CONFIG *config, struct ROB *rob, struct CA_status *rob_status, struct RS *rs, bool *is_completed_this_cycle);
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct RS_ARR *lsq);
+void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat);
 
 void wait(void);
 
-void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct RAT_ARR* rat);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -40,14 +34,12 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	printf("\n");
 
 	//파일 내 글로벌 초기화
-	cycle = 0;
-	cnt_IntAlu = 0;
-	cnt_MemRead = 0;
-	cnt_MemWrite = 0;
-
-
-	int decoded = 0;
-
+	struct SIMUL_INFO info;
+	info.cnt_IntAlu = 0;
+	info.cnt_MemRead = 0;
+	info.cnt_MemWrite = 0;
+	info.cycle = 0;
+	
 	// Initializing ...
 	int i;
 	int j;
@@ -97,14 +89,11 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	while (still_run);
 	{	
 		//cycle plus
-		cycle++;
+		info.cycle++;
 
 		//각 명령의 실행 횟수를 초기화한다.
-		fetch_blank = (fq.ca.size - fq.ca.occupied);//패치큐가 얼마나 비었는지 확인
-		ROB_blank = (rob.ll.size - rob.ll.occupied);//ROB가 얼마나 비었는지 확인
-		
-		decoded = 0;
-		issued = 0;
+		info.fetch_blank = (fq.ca.size - fq.ca.occupied);//패치큐가 얼마나 비었는지 확인
+		info.ROB_blank = (rob.ll.size - rob.ll.occupied);//ROB가 얼마나 비었는지 확인
 
 		//Loop1
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
@@ -112,7 +101,7 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 
 		commit(config, &rob, num_of_inst, rat);
 
-		ex_and_issue(config, rob, &rob_status, rs, is_completed_this_cycle);
+		ex_and_issue(config, &rob, &rs, &lsq);
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
@@ -189,9 +178,9 @@ struct REPORT *core_simulator(struct CONFIG *config, struct INST **arr_inst, int
 	return ptr_report;	
 }
 
-void fetch(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct INST *arr_inst)
+void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info)
 {
-	int fetch_num = ((*config).Width > fetch_blank) ? fetch_blank : (*config).Width;
+	int fetch_num = ((*config).Width > info-fetch_blank) ? fetch_blank : (*config).Width;
 	int i;
 	for (i = 0; i < fetch_num && pc < inst_length; i++)
 	{
@@ -204,27 +193,26 @@ void fetch(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_s
 	}
 }
 
-void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_status, struct RS *rs_ele, int rs_idx, struct RAT *rat, struct ROB *rob, struct CA_status *rob_status)
+void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, int* decoded, struct SIMUL_INFO *info)
 {
 	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) ROB has empty place
-	if ((*fq_status).occupied > 0 && decoded < (*config).Width && decoded < ROB_blank)
+	if (fetch_queue->ca.occupied > 0 && *decoded < (*config).Width && *decoded < info->ROB_blank)
 	{
 
 		struct FQ * fq_ele;
-		fq_ele = fetch_queue + ((*fq_status).head); //디코드해올 fq의 inst
-
+		fq_ele = (fetch_queue->fq) + (fetch_queue->ca.head); //디코드해올 fq의 inst
 
 		// Count Instruction number
-		switch (fetch_queue->opcode)
+		switch (fq_ele->opcode)
 		{
 		case 0:
-			cnt_IntAlu++;
+			info->cnt_IntAlu++;
 			break;
 		case 1:
-			cnt_MemRead++;
+			info->cnt_MemRead++;
 			break;
 		case 2:
-			cnt_MemWrite++;
+			info->cnt_MemWrite++;
 			break;
 		}
 
@@ -234,44 +222,45 @@ void decode(struct CONFIG *config, struct FQ *fetch_queue, struct CA_status *fq_
 
 		int oprd_1 = fq_ele->oprd_1;
 		int oprd_2 = fq_ele->oprd_2;
-		if (oprd_1 == 0 || rat[oprd_1].RF_valid)
+		if (oprd_1 == 0 || rat->rat[oprd_1].RF_valid)
 		{
 			(*rs_ele).oprd_1.state = V;
 		}
 		else
 		{
 			(*rs_ele).oprd_1.state = Q;
-			(*rs_ele).oprd_1.data.q = rat[oprd_1].Q;
+			(*rs_ele).oprd_1.data.q = rat->rat[oprd_1].Q;
 		}
 
-		if (oprd_2 == 0 || rat[oprd_2].RF_valid)
+		if (oprd_2 == 0 || rat->rat[oprd_2].RF_valid)
 		{
 			(*rs_ele).oprd_2.state = V;
 		}
 		else
 		{
 			(*rs_ele).oprd_2.state = Q;
-			(*rs_ele).oprd_2.data.q = rat[oprd_2].Q;
+			(*rs_ele).oprd_2.data.q = rat->rat[oprd_2].Q;
 		}
 
 		(*rs_ele).time_left = -1; // Waiting to be issued
-
+		
 		// Putting first element of Fetch Queue to ROB
-		rob[ca_next_pos(rob_status)].opcode = fq_ele->opcode;
-		rob[ca_next_pos(rob_status)].dest = fq_ele->dest;
-		rob[ca_next_pos(rob_status)].rs_dest = rs_idx;
-		rob[ca_next_pos(rob_status)].status = P;
-		(*rs_ele).rob_dest = ca_next_pos(rob_status);
+		rob->rob[rob->ll.tail].opcode = fq_ele->opcode;
+		rob->rob[rob->ll.tail].dest = fq_ele->dest;
+		rob->rob[rob->ll.tail].rs_dest = rs_idx;
+		rob->rob[rob->ll.tail].status = P;
+		rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
+		(*rs_ele).rob_dest = rob->ll.tail;
 
 		// Modify RAT status
-		if (fetch_queue[(*fq_status).head].dest != 0)
+		if (fq_ele->dest != 0)
 		{
-			rat[fetch_queue[(*fq_status).head].dest].RF_valid = false;		// Now data isn't inside the Arch Register file anymore
-			rat[fetch_queue[(*fq_status).head].dest].Q = ca_next_pos(rob_status);   // So leave reference to ROB entry in RAT
+			rat->rat[fq_ele->dest].RF_valid = false;		// Now data isn't inside the Arch Register file anymore
+			rat->rat[fq_ele->dest].Q = rob->ll.tail;   // So leave reference to ROB entry in RAT
 		}
 
-		ca_cnt_push(rob_status); // Element has been pushed to ROB
-		ca_cnt_pop(fq_status);   // Element has been poped from Fetch Queue
+		ll_cnt_push(&(rob->ll)); // Element has been pushed to ROB
+		ca_cnt_pop(&(fetch_queue->ca));   // Element has been poped from Fetch Queue
 
 		decoded++;
 	}
@@ -282,38 +271,39 @@ void value_payback(struct RS *rs_ele, struct ROB_ARR *rob)
 	if (rs_ele->time_left<0)//if it isn't issued
 	{
 		// Q ->V Promotion
-		if ((*rs_ele).oprd_1.state == Q && rob[((*rs_ele).oprd_1.data.q)].status)
+		if ((*rs_ele).oprd_1.state == Q && rob->rob[((*rs_ele).oprd_1.data.q)].status)
 		{
 			(*rs_ele).oprd_1.state = V;
 		}
 
-		if ((*rs_ele).oprd_2.state == Q && rob[((*rs_ele).oprd_2.data.q)].status)
+		if ((*rs_ele).oprd_2.state == Q && rob->rob[((*rs_ele).oprd_2.data.q)].status)
 		{
 			(*rs_ele).oprd_2.state = V;
 		}
 	}
 }
 
-void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat)
+void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info)
 {
+	int decoded = 0;
 	// For every entries in Reservation Station,
 	for (int i = 0; i < rs->size; i++)
 	{
 		if (rs->rs[i].is_valid) // Instruction is inside this entry of RS
 		{
-			value_payback(rs + i, rob);//check args is ready.
+			value_payback((rs->rs) + i, rob);//check args is ready.
 		}
 		else// This entry of RS is empty now
 		{
-			if (false==is_completed_this_cycle[i])//if not this entry flushed this cycle,
+			if (false== rs->rs[i].is_completed_this_cycle)//if not this entry flushed this cycle,
 			{
-				decode(config, fetch_queue, fq_status, rs+i, i, rat, rob, rob_status);// Try to decode instruction into empty place
+				decode(config, fetch_queue, (rs->rs)+i, i, rat, rob, &decoded, info);// Try to decode instruction into empty place
+			}
+			else
+			{
+				rs->rs[i].is_completed_this_cycle = false;
 			}
 		}
-
-		// Flush is_completed_this_cycle array
-		is_completed_this_cycle[i] = false;
-
 	}
 
 }
@@ -332,10 +322,10 @@ void issue(struct CONFIG *config, struct RS *rs_ele, int* issued)
 	}
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq)
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq)
 {
-	//if ( executed < (*config).Width)
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
+	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
 
 	if (rs_ele->time_left == 0)
 	{//만약 실행 대기중이라면, 
@@ -343,8 +333,8 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq)
 		if (rs_ele->opcode = IntAlu) {//alu 펑션이라면 실행하고 RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
-		else {//alu 펑션이 아니라면 메모리 주소가 끝났으니 lsq의 작업을 시작시킨다
-			lsq_issue(rs_ele, lsq);//현재 문제. lsq 작업 시작은 rs큐랑은 달라서 계속 호출하게 될 수 있음
+		else {//alu 펑션이 아니라면 메모리 주소가 끝났으니 lsq의 작업을 한다.
+			lsq_issue(rs_ele, lsq);
 		}
 		rs_ele->is_completed_this_cycle = true;
 
@@ -356,7 +346,7 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct RS_ARR *lsq)
 
 }
 
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct RS_ARR *lsq)
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq)
 {
 	int i;
 
@@ -381,7 +371,7 @@ void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs,
 			if (rs_ele->time_left >= 0)
 			{//만약 Issue 되었다면
 				execute(rs_ele, rob_ptr, lsq);
-				//실행 및 실행 완료한다.
+				//rs와 lsq의 실행 및 실행 완료한다.
 			}
 			else
 			{//만약 Issue 안되었다면
@@ -390,6 +380,10 @@ void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs,
 			}
 
 		}
+
+		//다음 원소로 포인터를 이동한다
+		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr = (rob->rob) + (rob_ptr_idx);
 
 	}
 
@@ -458,3 +452,14 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, int num_of_inst, struct 
 			
 	} while (true);
 }
+
+struct SIMUL_INFO
+{
+	int cycle;
+	int cnt_IntAlu;
+	int cnt_MemRead;
+	int cnt_MemWrite;
+
+	int fetch_blank;
+	int ROB_blank;
+};

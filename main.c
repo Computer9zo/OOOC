@@ -6,7 +6,7 @@
 
 #include "data_structures.h"
 #include "file_read.h"
-#include "simulator.h"
+//#include "simulator.h"
 
 //long disp functions
 void disp_title(void);
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 	
 	//run simulation
 	struct REPORT report;
-	report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
+	//report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
 
 	//print out report
 	FILE* f_report = fopen(report_name, "w");
@@ -77,14 +77,6 @@ void disp_title(void)
 	printf("            program will print out\n");
 	printf("            '[dump]_[width]_[ROS_size]_[RS_size]_[inst_name]_output.out'\n");
 	printf("+------------------------------------------------------------------------------+\n");
-}
-
-void disp_taskdata(struct CONFIG* configs, int inst_idx, int conf_idx, char** inst_filename)
-{
-	printf("Task %d in total %d\n", inst_idx + 1, (inst_idx + 1)*(conf_idx + 1));
-	printf("inst_%d : %s\n", inst_idx + 1, inst_filename[inst_idx]);
-	printf("conf_%d : ", conf_idx + 1);
-	Config_printer(configs + conf_idx);
 }
 
 void disp_end(void)
