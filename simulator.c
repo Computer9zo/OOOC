@@ -69,6 +69,17 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 	// ReOrdering Buffer
 	struct ROB_ARR rob = ROB_create((*config).ROB_size);
 
+	// Cache
+	struct cache_config cache_config;
+	cache_config.block_size = (config->Width);//need edit
+	cache_config.capacity;
+	cache_config.set_numbers;
+	cache_config.way_numbers;
+	void** cache_object = (void**)cache_initializer(&cache_config);
+	//struct cons_cache_controller *cache_cont = cache_object[0];
+	//struct cons_cache *cache = cache_object[1];
+	//struct statistics *stat = cache_object[2];
+
 	//check all is accesable
 	if ((rat == NULL) || (rob.ll.size == 0) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.ca.size = 0 )) {
 		return 1;
@@ -100,8 +111,8 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
 		commit(config, &rob, rat, &info);
-
 		ex_and_issue(config, &rob, &rs, &lsq, &info);
+		//issue();
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
@@ -110,36 +121,33 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 		// Fetch instructions
 		fetch(config, &fq, threads, &info);
 
-
 		// Dump
 		int total_len = 0;
 		int total_pc = 0;
 		switch ((*config).Dump)
 		{
-		case 0:
-			//지겨움 방지
+		case 0://display current percentage to do;
 			for (i = 0; i<info.num_of_inst; ++i){
 				total_len += threads[i].length;
 				total_pc += threads[i].pc;
 			}
-			if (info.cycle % 1000 == 0){
-				if (info.cycle == 1){
+			if (info.cycle % 1000 == 0) {
+				if (info.cycle == 1) {
 					printf("Simulating =");
 				}
 				printf("%3d%%\b\b\b\b", total_pc *100 / total_len);
 			}
 			break;
-		case 1:
+		case 1://rob print
 			printf("= Cycle %-5d\n", info.cycle);
 			ROB_arr_reporter(&rob);
 			break;
-		case 2:
+		case 2://rob and rs print
 			printf("= Cycle %-5d\n", info.cycle);
 			RS_arr_reporter(&rs, &rob);
 			ROB_arr_reporter(&rob);
 			break;
-		default:
-			//debug mode
+		default://debug mode
 			printf("= Cycle %-5d\n", info.cycle);
 			FQ_arr_printer(&fq);
 			RAT_arr_printer(&rat);
@@ -148,9 +156,6 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 			wait();
 			break;
 		}
-		
-
-
 	}
 
 	// Simulation finished
@@ -180,6 +185,7 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 
 	if (config->Dump == 0) {printf("100%%");}
 
+	// disp Final status
 	printf("\n= Final State\n");
 	REPORT_reporter(out_report);	// display a report
 	printf("\n");
@@ -451,17 +457,17 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 	(*rs_ele).is_valid = false;
 }
 
-void lsq_issue(struct RS *rs_ele, struct LSQ *lsq, struct SIMUL_INFO* info)
+void lsq_issue(struct RS *rs_ele, struct LSQ *lsq, void** caches, struct SIMUL_INFO* info)//info를 이용해 통신하도록 해보자
 {
 	if (lsq->time<0)//아직 이슈가 안되었으면
 	{
 		if (rs_ele->opcode == MemRead && 0 < info->load_blank) {
-			
-
-			lsq->time
+			cache_query()
+			//캐시검사
+			lsq->time =
 		}
 		else if (rs_ele->opcode == MemRead && 0 <info->save_blank) {
-
+			//여기도 검사
 		}
 	}
 }
@@ -529,5 +535,7 @@ struct SIMUL_INFO
 
 	int fetch_blank;
 	int ROB_blank;
+	int load_blank;
+	int save_blank;
 	int currnt_fetch;
 };
