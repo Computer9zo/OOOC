@@ -24,6 +24,9 @@ struct ROB;        // Single element in ReOrder Buffer
 struct RS_ARR;      //ReOrder Buffer
 struct CA_status;  // Status of cyclic array
 struct LL_status;  // Status of Limited Linked list
+struct LSQ;// Load Store queue
+struct LSQ_ARR;// Load Store queue
+
 //creator & deletor
 
 struct THREAD THREAD_create(struct INST* inst_arr, int inst_len);
@@ -40,25 +43,28 @@ void RS_delete(struct RS_ARR rs_arr);
 struct ROB_ARR ROB_create(int size_of_queue);
 void ROB_delete(struct ROB_ARR rob_arr);
 
+struct LSQ_ARR LSQ_create(int size_of_queue);
+void LSQ_delete(struct LSQ_ARR rob_arr);
+
 //for debuging
 void INST_printer(const struct INST* printed); 
 void FQ_printer(const struct FQ* printed);
 void CONFIG_printer(const struct CONFIG* printed);
 void RAT_printer(const struct RAT* printed);
-void RS_printer(const struct RS* printed, struct CA_status* rob_status);
+void RS_printer(const struct RS* printed, struct LL_status* rob_status);
 void ROB_printer(const struct ROB* printed);
 
-void FQ_arr_printer(const struct FQ* fq, struct CA_status fq_status);
-void RAT_arr_printer(const struct RAT* rat, int rat_size);
-void RS_arr_printer(const struct RS *rs, int rs_size,struct CA_status* rob_status);
-void ROB_arr_printer(const struct ROB *rob, struct CA_status rob_status);
+void FQ_arr_printer(const struct FQ_ARR* fq);
+void RAT_arr_printer(const struct RAT_ARR* rat);
+void RS_arr_printer(const struct RS_ARR *rs, const struct ROB_ARR *rob);
+void ROB_arr_printer(const struct ROB_ARR *rob);
 
 //for reporting
 void RS_reporter(const struct RS* printed, struct CA_status* rob_status);
 void ROB_reporter(const struct ROB* printed);
 void REPORT_reporter(const struct REPORT* printed);
-void RS_arr_reporter(const struct RS *rs, int rs_size, struct CA_status* rob_status);
-void ROB_arr_reporter(const struct ROB *rob, struct CA_status rob_status);
+void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob);
+void ROB_arr_reporter(const struct ROB_ARR *rob);
 
 void REPORT_fprinter(const struct REPORT* printed, FILE* fileID);
 
@@ -73,6 +79,7 @@ struct LL_status ll_cnt_init(int size);
 void ll_cnt_pop(struct LL_status *status, int pop_num);
 void ll_cnt_push(struct LL_status *status);
 int ll_next_pos(struct LL_status *status, int origin_pos);
+int ll_get_cidx(struct LL_status *status, int target_idx);
 void ll_delete(struct LL_status *status);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,6 +102,8 @@ struct REPORT
 	int IntAlu;
 	int MemRead;
 	int MemWrite;
+	int num_of_inst;
+	int*Inst_per_thread;
 };
 
 struct CA_status
@@ -160,6 +169,7 @@ struct RAT_ARR//Register AT
 struct RS//Res Staton
 {
 	int rob_dest;
+	int lsq_dest;
 	bool is_valid; // Busy or not
 	enum instruction opcode;
 	int time_left; // Shows cycles left to be finished. -1 means not started
@@ -205,4 +215,18 @@ struct ROB_ARR
 	struct LL_status ll;
 };
 
+struct LSQ// Load Store queue
+{
+	enum instruction opcode; // operation
+	int time; //
+	int rob_dest; // status = P; means pending, status = C; means completed
+	int rs_dest;//linked RS index
+	int address;//where it from
+};
+
+struct LSQ_ARR// Load Store queue
+{
+	struct LSQ * lsq;
+	struct CA_status ca;
+};
 #endif // !DATA_TYPES

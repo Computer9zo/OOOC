@@ -38,7 +38,10 @@ int main(int argc, char* argv[])
 	
 	//run simulation
 	struct REPORT report;
-	report = core_simulator(&config, inst_arr, inst_len, inst_num);//simulate
+	if (core_simulator(&config, inst_arr, inst_len, inst_num, &report) != 0) { //simulate
+		disp_error();
+		return 1; //if there is error, quit
+	}
 
 	//print out report
 	FILE* f_report = fopen(report_name, "w");
