@@ -61,7 +61,7 @@ bool is_work_left(struct THREAD* threads, struct simulator_data* simulator);
 void remains_update(struct simulator_data* simulator);
 
 void commit(struct simulator_data* simul);
-
+void ex_and_issue(struct simulator_data* simulator);
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
 void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, struct ROB_ARR *lsq, int* decoded, struct SIMUL_INFO *info);
@@ -70,8 +70,7 @@ void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struc
 void issue(struct CONFIG *config, struct RS *rs_ele, int* issued);
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
-//void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ *lsq, void** cache_object, struct SIMUL_INFO* info);
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
+
 
 void wait(void);
 
@@ -106,7 +105,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
 		commit(&simul_data);
-		ex_and_issue(config, &rob, &rs, &lsq, cache_object, &info);
+		ex_and_issue(&simul_data);
 		//issue();
 
 		//Loop2
@@ -583,10 +582,13 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void**
 
 }
 
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)
+void ex_and_issue(struct simulator_data* simul)
 {
 	int i;
 
+	struct ROB_ARR* rob = simul->core.rob;
+	struct RS_ARR* rs = simul->core.rs;
+	struct LSQ_ARR* lsq = simul->core.lsq;
 	struct ROB* rob_ptr;
 	int rob_ptr_idx;
 	struct RS  * rs_ele;
@@ -607,7 +609,7 @@ void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs,
 
 			if (rs_ele->time_left >= 0)
 			{//만약 Issue 되었다면
-				execute(rs_ele, rob_ptr, lsq, cache_object, info);
+				execute(rs_ele, rob_ptr, simul);
 				//rs와 lsq의 실행 및 실행 완료한다.
 			}
 			else
@@ -626,103 +628,12 @@ void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs,
 
 }
 
-void wait(void)
-{
-	printf("\nPress any key to continue :\n");
-	getchar();
-}
-
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 {
 	rob_ele->status = C;
 	(*rs_ele).is_valid = false;
 }
-/*
-void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)//info를 이용해 통신하도록 해보자
-{
-	struct cons_cache_controller *cache_cont = cache_object[0];
-	struct cons_cache *cache = cache_object[1];
-	struct statistics *stat = cache_object[2];
-	struct LSQ* lsq_ele = (lsq->lsq)+(rs_ele->lsq_dest);
 
-	if (lsq_ele->time == 0)//실행이 완료되었으면, 커밋 과정을 수행한다.
-	{
-		rs_retire(rs_ele, rob_ele);
-		ll_cnt_pop(&(lsq->ll), rs_ele->lsq_dest);
-
-		//캐시 업데이트도 수행한다
-		cache_filler(cache_cont, cache, stat, lsq_ele->address)
-
-		//커밋 시 빈공간이 났음을 저장한다
-		if (rs_ele->opcode == MemRead)
-		{
-			++(info->load_add_blank);
-		}
-		else
-		{
-			++(info->save_add_blank);
-		}
-	}
-	else if (lsq_ele->time>0)//실행중이면 대기시간을 1사이클 줄인다(불러오기)
-	{
-		--(lsq_ele->time);
-	}
-	else //아직 이슈가 안되었으면
-	{
-		if (rs_ele->opcode == MemRead && 0 < info->load_blank) {
-			//Load시 캐시 hit이 났을 때 2사이클, miss시 52사이클
-			//위의 준비 안된 SAVE가 있을 시 작업을 수행하지 않는다.
-			struct LSQ* lsq_ptr = (lsq->lsq) + (rs_ele->lsq_dest);
-			int lsq_ptr_idx = (rs_ele->lsq_dest);
-			while (true)
-			{//한단계씩 전 명령을 검사한다
-				if (lsq_ptr->opcode == MemWrite)
-				{//write에 대해서만 검사한다.
-					if (lsq_ptr->address < 0)
-					{//알수 없는 주소의 save이므로 load를 하지 않는다.
-						break;
-					}
-					else if (lsq_ptr->address == rs_ele->oprd_2.data.v)
-					{//같은 주소의 세이브가 있으므로 feed-forward.
-						lsq_ele->address = rs_ele->oprd_2.data.v;
-						lsq_ele->time = 0;
-
-						--(info->load_add_blank);
-						--(info->load_blank);
-					}
-				}
-				if (lsq_ptr_idx == lsq->ll.head)
-				{//위의 조건이 모두 해당되지 않을 시, 그냥 로드하면 된다.
-					lsq_ele->address = rs_ele->oprd_2.data.v;
-					lsq_ele->time = cache_query(cache_cont, cache, stat, READ, lsq_ele->address) ? 0 : 51;
-
-					--(info->load_add_blank);
-					--(info->load_blank);
-				}
-
-				lsq_ptr_idx = lsq->ll.prev[lsq_ptr_idx];
-				lsq_ptr = (lsq->lsq) + (lsq_ptr_idx);
-			}
-
-		}
-		else if (rs_ele->opcode == MemRead && 0 <info->save_blank) {
-			//write시 캐시 hit이면 즉시 commit, miss시 51사이클
-			--(info->save_blank);
-			lsq_ele->address = rs_ele->oprd_2.data.v;
-			if (cache_query(cache_cont, cache, stat, WRITE, lsq_ele->address))
-			{
-				rs_retire(rs_ele, rob_ele);
-				ll_cnt_pop(&(lsq->ll), rs_ele->lsq_dest);
-			}
-			else
-			{
-				--(info->load_add_blank);
-				lsq_ele->time = 50;
-			}
-		}
-	}
-}
-*/
 void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 {
 	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
@@ -784,3 +695,8 @@ void commit(struct simulator_data* simul)
 	}
 }
 
+void wait(void)
+{
+	printf("\nPress any key to continue :\n");
+	getchar();
+}
