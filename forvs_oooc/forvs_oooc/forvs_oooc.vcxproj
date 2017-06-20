@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{6FB3BFB1-C01D-499F-B0AC-DC985B1E6489}</ProjectGuid>
+    <ProjectGuid>{EB39B308-4F22-433C-AD42-54EAC7BBE4F5}</ProjectGuid>
     <RootNamespace>forvs_oooc</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>

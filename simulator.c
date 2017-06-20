@@ -16,10 +16,10 @@ void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
 void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info);
 void issue(struct CONFIG *config, struct RS *rs_ele, int* issued);
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, struct SIMUL_INFO* info);
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
-void lsq_issue(struct RS *rs_ele, struct LSQ *lsq, struct SIMUL_INFO* info);
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, struct SIMUL_INFO* info);
+//void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ *lsq, void** cache_object, struct SIMUL_INFO* info);
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
 void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info);
 
 void wait(void);
@@ -59,7 +59,7 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 
 	// Fetch Queue
 	struct FQ_ARR fq = FQ_create(2 * (*config).Width);
-	fq.ca.size== 0;
+
 	// Reservation Station
 	struct RS_ARR rs = RS_create((*config).RS_size);
 
@@ -76,12 +76,28 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 	cache_config.set_numbers;
 	cache_config.way_numbers;
 	void** cache_object = (void**)cache_initializer(&cache_config);
+
+	if (config->Width > 4)
+	{
+		info.load_blank = info.load_add_blank = 3;//메모리 패스 초기값 설정
+		info.save_blank = info.save_add_blank = 2;
+	}
+	else if (config->Width > 1)
+	{
+		info.load_blank = info.load_add_blank = 2;//메모리 패스 초기값 설정
+		info.save_blank = info.save_add_blank = 1;
+	}
+	else
+	{
+		info.load_blank = info.load_add_blank = 1;//메모리 패스 초기값 설정
+		info.save_blank = info.save_add_blank = 1;
+	}
 	//struct cons_cache_controller *cache_cont = cache_object[0];
 	//struct cons_cache *cache = cache_object[1];
 	//struct statistics *stat = cache_object[2];
 
 	//check all is accesable
-	if ((rat == NULL) || (rob.ll.size == 0) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.ca.size = 0 )) {
+	if ((rat == NULL) || (rob.ll.size == 0) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.ll.size = 0 )) {
 		return 1;
 	}
 	for (i = 0; i < num_of_inst; j++) {
@@ -92,7 +108,7 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 	
 	//check cycle state
 	bool still_run = false;
-	for (i = 0; i < num_of_inst; j++) {
+	for (i = 0; i < num_of_inst; i++) {
 		//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
 		still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
 	}
@@ -105,13 +121,14 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 		//각 명령의 실행 횟수를 초기화한다.
 		info.fetch_blank = (fq.ca.size - fq.ca.occupied);//패치큐가 얼마나 비었는지 확인
 		info.ROB_blank = (rob.ll.size - rob.ll.occupied);//ROB가 얼마나 비었는지 확인
-
+		info.load_blank = info.load_add_blank;//메모리 패스 빈 공간 확인
+		info.save_blank = info.save_add_blank;
 		//Loop1
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
 		commit(config, &rob, rat, &info);
-		ex_and_issue(config, &rob, &rs, &lsq, &info);
+		ex_and_issue(config, &rob, &rs, &lsq, cache_object, &info);
 		//issue();
 
 		//Loop2
@@ -155,6 +172,11 @@ int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_
 			ROB_arr_printer(&rob);
 			wait();
 			break;
+		}
+
+		for (i = 0; i < num_of_inst; i++) {
+			//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
+			still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
 		}
 	}
 
@@ -378,7 +400,7 @@ void issue(struct CONFIG *config, struct RS *rs_ele, int* issued)
 	}
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, struct SIMUL_INFO* info)
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
@@ -390,7 +412,7 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, struct
 			rs_retire(rs_ele, rob_ele);
 		}
 		else {//alu 펑션이 아니라면 메모리 주소가 끝났으니 lsq의 작업을 한다.
-			lsq_issue(rs_ele, lsq, info);
+			lsq_issue(rs_ele, rob_ele, lsq, cache_object, info);
 		}
 		rs_ele->is_completed_this_cycle = true;
 
@@ -402,7 +424,7 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, struct
 
 }
 
-void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, struct SIMUL_INFO* info)
+void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)
 {
 	int i;
 
@@ -426,7 +448,7 @@ void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs,
 
 			if (rs_ele->time_left >= 0)
 			{//만약 Issue 되었다면
-				execute(rs_ele, rob_ptr, lsq, info);
+				execute(rs_ele, rob_ptr, lsq, cache_object, info);
 				//rs와 lsq의 실행 및 실행 완료한다.
 			}
 			else
@@ -456,22 +478,92 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 	rob_ele->status = C;
 	(*rs_ele).is_valid = false;
 }
-
-void lsq_issue(struct RS *rs_ele, struct LSQ *lsq, void** caches, struct SIMUL_INFO* info)//info를 이용해 통신하도록 해보자
+/*
+void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)//info를 이용해 통신하도록 해보자
 {
-	if (lsq->time<0)//아직 이슈가 안되었으면
+	struct cons_cache_controller *cache_cont = cache_object[0];
+	struct cons_cache *cache = cache_object[1];
+	struct statistics *stat = cache_object[2];
+	struct LSQ* lsq_ele = (lsq->lsq)+(rs_ele->lsq_dest);
+
+	if (lsq_ele->time == 0)//실행이 완료되었으면, 커밋 과정을 수행한다.
+	{
+		rs_retire(rs_ele, rob_ele);
+		ll_cnt_pop(&(lsq->ll), rs_ele->lsq_dest);
+
+		//캐시 업데이트도 수행한다
+		cache_filler(cache_cont, cache, stat, lsq_ele->address)
+
+		//커밋 시 빈공간이 났음을 저장한다
+		if (rs_ele->opcode == MemRead)
+		{
+			++(info->load_add_blank);
+		}
+		else
+		{
+			++(info->save_add_blank);
+		}
+	}
+	else if (lsq_ele->time>0)//실행중이면 대기시간을 1사이클 줄인다(불러오기)
+	{
+		--(lsq_ele->time);
+	}
+	else //아직 이슈가 안되었으면
 	{
 		if (rs_ele->opcode == MemRead && 0 < info->load_blank) {
-			cache_query()
-			//캐시검사
-			lsq->time =
+			//Load시 캐시 hit이 났을 때 2사이클, miss시 52사이클
+			//위의 준비 안된 SAVE가 있을 시 작업을 수행하지 않는다.
+			struct LSQ* lsq_ptr = (lsq->lsq) + (rs_ele->lsq_dest);
+			int lsq_ptr_idx = (rs_ele->lsq_dest);
+			while (true)
+			{//한단계씩 전 명령을 검사한다
+				if (lsq_ptr->opcode == MemWrite)
+				{//write에 대해서만 검사한다.
+					if (lsq_ptr->address < 0)
+					{//알수 없는 주소의 save이므로 load를 하지 않는다.
+						break;
+					}
+					else if (lsq_ptr->address == rs_ele->oprd_2.data.v)
+					{//같은 주소의 세이브가 있으므로 feed-forward.
+						lsq_ele->address = rs_ele->oprd_2.data.v;
+						lsq_ele->time = 0;
+
+						--(info->load_add_blank);
+						--(info->load_blank);
+					}
+				}
+				if (lsq_ptr_idx == lsq->ll.head)
+				{//위의 조건이 모두 해당되지 않을 시, 그냥 로드하면 된다.
+					lsq_ele->address = rs_ele->oprd_2.data.v;
+					lsq_ele->time = cache_query(cache_cont, cache, stat, READ, lsq_ele->address) ? 0 : 51;
+
+					--(info->load_add_blank);
+					--(info->load_blank);
+				}
+
+				lsq_ptr_idx = lsq->ll.prev[lsq_ptr_idx];
+				lsq_ptr = (lsq->lsq) + (lsq_ptr_idx);
+			}
+
 		}
 		else if (rs_ele->opcode == MemRead && 0 <info->save_blank) {
-			//여기도 검사
+			//write시 캐시 hit이면 즉시 commit, miss시 51사이클
+			--(info->save_blank);
+			lsq_ele->address = rs_ele->oprd_2.data.v;
+			if (cache_query(cache_cont, cache, stat, WRITE, lsq_ele->address))
+			{
+				rs_retire(rs_ele, rob_ele);
+				ll_cnt_pop(&(lsq->ll), rs_ele->lsq_dest);
+			}
+			else
+			{
+				--(info->load_add_blank);
+				lsq_ele->time = 50;
+			}
 		}
 	}
 }
-
+*/
 void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info)
 {
 	int i;//iter
@@ -537,5 +629,7 @@ struct SIMUL_INFO
 	int ROB_blank;
 	int load_blank;
 	int save_blank;
+	int load_add_blank;
+	int save_add_blank;
 	int currnt_fetch;
 };

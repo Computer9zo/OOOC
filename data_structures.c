@@ -89,17 +89,16 @@ struct LSQ_ARR LSQ_create(int size_of_queue)
 {
 	struct LSQ_ARR result;
 	result.lsq = (struct LSQ*)calloc(size_of_queue, sizeof(struct LSQ));
-	result.ca.head=0;
-	result.ca.occupied=0;
-	result.ca.size=size_of_queue;
+	result.ll = ll_cnt_init(size_of_queue);
 
-	if (result.lsq == NULL) { result.ca.size = 0; }
+	if (result.lsq == NULL) { result.ll.size = 0; }
 
 	return result;
 }
 void LSQ_delete(struct LSQ_ARR lsq_arr)
 {
 	free(lsq_arr.lsq);
+	ll_delete(&(lsq_arr.ll));
 }
 
 void INST_printer(const struct INST* printed)

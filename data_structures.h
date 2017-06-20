@@ -227,6 +227,6 @@ struct LSQ// Load Store queue
 struct LSQ_ARR// Load Store queue
 {
 	struct LSQ * lsq;
-	struct CA_status ca;
+	struct LL_status ll;
 };
 #endif // !DATA_TYPES
