@@ -12,11 +12,12 @@
 void disp_title(void);
 void disp_end(void);
 void disp_error(void);
+void disp_blank_line(void);
 
 const char *get_filename(const char* filepath);//get filename from full filepath
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 	              struct THREAD** out_threads, int* out_inst_num, char* out_report_name);//package for reading function with statement
-int free_all_data(struct THREAD** out_threads, int out_inst_num);//free data
+int free_all_data(struct THREAD* out_threads, int out_inst_num);//free data
 
 int main(int argc, char* argv[])
 {
@@ -35,6 +36,8 @@ int main(int argc, char* argv[])
 		return 1; //if there is error, quit
 	}
 	
+	disp_blank_line();
+
 	//run simulation
 	struct REPORT report;
 	if (core_simulator(&config, threads, thread_num, &report) != 0) { //simulate
@@ -54,8 +57,8 @@ int main(int argc, char* argv[])
 	REPORT_fprinter(&report, f_report);
 	fclose(f_report);
 	
-	printf("Report saved : %s", report_name);
-	printf("\n\n");
+	printf("Report saved : %s\n", report_name);
+	disp_blank_line();
 	
 	free_all_data(threads, thread_num);
 	disp_end();
@@ -91,6 +94,11 @@ void disp_error(void)
 {
 	printf("Program error - Press any key to quit");
 	getchar();
+}
+
+void disp_blank_line(void)
+{
+	printf("\n");
 }
 
 const char *get_filename(const char* filepath)//get filename from full filepath

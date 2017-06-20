@@ -30,7 +30,7 @@ struct LSQ_ARR;// Load Store queue
 //creator & deletor
 
 struct THREAD THREAD_create(struct INST* inst_arr, int inst_len);
-void THREAD_delete(struct THREAD rat);
+void THREAD_delete(struct THREAD* thread);
 
 struct RAT_ARR RAT_create(int num_of_register);
 void RAT_delete(struct RAT_ARR rat);
@@ -61,7 +61,7 @@ void RS_arr_printer(const struct RS_ARR *rs, const struct ROB_ARR *rob);
 void ROB_arr_printer(const struct ROB_ARR *rob);
 
 //for reporting
-void RS_reporter(const struct RS* printed, struct CA_status* rob_status);
+void RS_reporter(const struct RS* printed, struct LL_status* rob_status);
 void ROB_reporter(const struct ROB* printed);
 void REPORT_reporter(const struct REPORT* printed);
 void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob);

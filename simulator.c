@@ -17,19 +17,11 @@ struct simulator_data
 		struct LSQ_ARR* lsq;//로드 스토어 큐
 		struct ROB_ARR* rob;//리오더 버퍼
 		struct RAT_ARR* rat;//레지스터 아키텍쳐 테이블
-
+		
 		struct core_info
 		{
-			int fq_remain;//현재 남은 빈 공간 수
-			int fq_new_blank;//이번 사이클에서 새로 생긴 빈공간 수
-			int rob_remain;
-			int rob_new_blank;
-			int lsq_remain;
-			int lsq_new_blank;
-			int load_remain;
-			int write_remain;
-			int load_new_blank;
-			int write_new_blank;
+			// 남은 횟수 width나 빈공간중 작은거. 남은 횟수가 쓰인 만큼 ->빈공간이 준다., 작업이 완료된 만큼 빈공간이 는다
+			struct cons_remaining fq, rob, lsq, load, write;
 		} info;
 	} core;
 	struct cons_cache
@@ -37,6 +29,7 @@ struct simulator_data
 		struct cons_cache_controller *cont;
 		struct cons_cache *cache;
 		struct statistics *stat;
+		bool is_perfect_cache;
 	} cache;
 	struct const_simul_info
 	{
@@ -54,7 +47,22 @@ struct simulator_data
 	}info;
 };
 
-int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num);
+struct cons_remaining
+{
+	int remain;//현재 남은 빈 횟수 
+	int blank;//현재 남은 빈 공간
+	int width;//한 사이클에 최대한 수행할 수 있는 양
+};
+
+int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
+
+bool is_work_left(struct THREAD* threads, struct simulator_data* simulator);
+
+void remains_update(struct simulator_data* simulator);
+
+void commit(struct CONFIG *config, struct simulator_data* simul);
+
+
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
 void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, struct ROB_ARR *lsq, int* decoded, struct SIMUL_INFO *info);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
@@ -64,7 +72,6 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void**
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 //void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ *lsq, void** cache_object, struct SIMUL_INFO* info);
 void ex_and_issue(struct CONFIG *config, struct ROB_ARR *rob, struct RS_ARR *rs, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
-void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info);
 
 void wait(void);
 
@@ -73,101 +80,27 @@ void wait(void);
 
 int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report)
 {
-	//출력을 위한 공백 확보
-	printf("\n");
+	
+	//simulator init
+	struct simulator_data simul_data;
 
-	int simulator_initialize(config, struct THREAD* threads, int thread_num);
-	//파일 내 글로벌 초기화
-	struct SIMUL_INFO info;
-	info.num_of_inst = num_of_inst;
-	info.cnt_IntAlu = 0;
-	info.cnt_MemRead = 0;
-	info.cnt_MemWrite = 0;
-	info.cycle = 0;
-	info.currnt_fetch = 0;
-
-	// Initializing ...
-	int i;
-	int j;
-
-	//편하게 사용하기 위해 Thread로 인스트럭션을 패키징함
-	struct THREAD threads[] = (struct THREAD*)calloc(num_of_inst, sizeof(struct THREAD));
-	for (i = 0; i < num_of_inst; ++i) {
-		threads[i] = THREAD_create(arr_inst[i], arr_inst_len[i]);
-	}
-
-	// RAT
-	struct RAT_ARR rat[] = (struct RAT_ARR*)calloc(num_of_inst,sizeof(struct RAT_ARR));
-	for (i = 0; i < num_of_inst; ++i) {
-		rat[i]=RAT_create(17); // 0 means no. rat[1] ~ rat[16] are Arch Register entries
-	}
-
-	// Fetch Queue
-	struct FQ_ARR fq = FQ_create(2 * (*config).Width);
-
-	// Reservation Station
-	struct RS_ARR rs = RS_create((*config).RS_size);
-
-	// Load store queue
-	struct LSQ_ARR lsq = LSQ_create((*config).RS_size);
-
-	// ReOrdering Buffer
-	struct ROB_ARR rob = ROB_create((*config).ROB_size);
-
-	// Cache
-	struct cache_config cache_config;
-	cache_config.block_size = (config->Width);//need edit
-	cache_config.capacity;
-	cache_config.set_numbers;
-	cache_config.way_numbers;
-	void** cache_object = (void**)cache_initializer(&cache_config);
-
-	if (config->Width > 4)
-	{
-		info.load_blank = info.load_add_blank = 3;//메모리 패스 초기값 설정
-		info.save_blank = info.save_add_blank = 2;
-	}
-	else if (config->Width > 1)
-	{
-		info.load_blank = info.load_add_blank = 2;//메모리 패스 초기값 설정
-		info.save_blank = info.save_add_blank = 1;
-	}
-	else
-	{
-		info.load_blank = info.load_add_blank = 1;//메모리 패스 초기값 설정
-		info.save_blank = info.save_add_blank = 1;
-	}
-	//struct cons_cache_controller *cache_cont = cache_object[0];
-	//struct cons_cache *cache = cache_object[1];
-	//struct statistics *stat = cache_object[2];
-
-	//check all is accesable
-	if ((rat == NULL) || (rob.ll.size == 0) || (fq.ca.size == 0) || (rs.size == 0) || (lsq.ll.size = 0 )) {
+	if (1 == simulator_initialize(config, threads, thread_num, &simul_data))
+	{//init failed!
 		return 1;
 	}
-	for (i = 0; i < num_of_inst; j++) {
-		if (rat[j].size == 0){
-			return 1;
-		}
-	}
+
 	
 	//check cycle state
-	bool still_run = false;
-	for (i = 0; i < num_of_inst; i++) {
-		//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
-		still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
-	}
+
 	
-	while (still_run);
+	while (is_work_left(threads, &simul_data));
 	{	
 		//cycle plus
-		info.cycle++;
+		++(simul_data.info.cycle);
 
 		//각 명령의 실행 횟수를 초기화한다.
-		info.fetch_blank = (fq.ca.size - fq.ca.occupied);//패치큐가 얼마나 비었는지 확인
-		info.ROB_blank = (rob.ll.size - rob.ll.occupied);//ROB가 얼마나 비었는지 확인
-		info.load_blank = info.load_add_blank;//메모리 패스 빈 공간 확인
-		info.save_blank = info.save_add_blank;
+		remains_update(&simul_data);
+
 		//Loop1
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
@@ -258,6 +191,187 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	printf("\n");
 	
 	return 0;
+}
+
+int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator)
+{
+	//simulator_data.info inits
+	out_simulator->info.num_of_inst = thread_num;
+
+	out_simulator->info.Total_Insts = 0;
+	out_simulator->info.Inst_per_thread = (int*)calloc(out_simulator->info.num_of_inst,sizeof(int));
+	if (out_simulator->info.Inst_per_thread == NULL) 
+	{//malloc error
+		return 1;
+	}
+	for (int i = 0; i < out_simulator->info.num_of_inst; ++i)
+	{
+		out_simulator->info.Total_Insts       += threads[i].length;
+		out_simulator->info.Inst_per_thread[i] = threads[i].length;
+	}
+	
+	out_simulator->info.cycle = 0;
+
+	out_simulator->info.cnt_Insts = 0;
+	out_simulator->info.cnt_IntAlu = 0;
+	out_simulator->info.cnt_MemRead = 0;
+	out_simulator->info.cnt_MemWrite = 0;
+	
+	//simulator_data.core init
+	out_simulator->core.fq = (struct FQ_ARR*)calloc(1, sizeof(struct FQ_ARR));
+	if (out_simulator->core.fq == NULL)
+	{//malloc error
+		return 1;
+	}
+	(*out_simulator->core.fq) = FQ_create(2 * (*config).Width);
+	if (out_simulator->core.fq->ca.size == 0)
+	{//malloc error
+		return 1;
+	}
+
+	out_simulator->core.rs = (struct RS_ARR*)calloc(1, sizeof(struct RS_ARR));
+	if (out_simulator->core.rs == NULL)
+	{//malloc error
+		return 1;
+	}
+	(*out_simulator->core.rs) = RS_create((*config).RS_size);
+	if (out_simulator->core.rs->size == 0)
+	{//malloc error
+		return 1;
+	}
+
+	out_simulator->core.lsq = (struct LSQ_ARR*)calloc(1, sizeof(struct LSQ_ARR));
+	if (out_simulator->core.lsq == NULL)
+	{//malloc error
+		return 1;
+	}
+	(*out_simulator->core.lsq) = LSQ_create((*config).LSQ_size);
+	if (out_simulator->core.lsq->ll.size == 0)
+	{//malloc error
+		return 1;
+	}
+
+	out_simulator->core.rob = (struct ROB_ARR*)calloc(1, sizeof(struct ROB_ARR));
+	if (out_simulator->core.rob == NULL)
+	{//malloc error
+		return 1;
+	}
+	(*out_simulator->core.rob) = ROB_create((*config).ROB_size);
+	if (out_simulator->core.rob->ll.size == 0)
+	{//malloc error
+		return 1;
+	}
+
+	out_simulator->core.rat = (struct RAT_ARR*)calloc(out_simulator->info.num_of_inst, sizeof(struct RAT_ARR));
+	if (out_simulator->core.rat == NULL)
+	{//malloc error
+		return 1;
+	}
+	for (int i = 0; i < out_simulator->info.num_of_inst; ++i) 
+	{
+		out_simulator->core.rat[i] = RAT_create(17); // 0 means no. rat[1] ~ rat[16] are Arch Register entries
+		if (out_simulator->core.rat->size == 0)
+		{//malloc error
+			return 1;
+		}
+	}
+	
+	out_simulator->core.info.fq.blank = out_simulator->core.fq->ca.size;
+	out_simulator->core.info.fq.width = (*config).Width;
+	out_simulator->core.info.fq.remain = -1;//it not init in this time. it will init start of every cycle
+
+	out_simulator->core.info.rob.blank = out_simulator->core.rob->ll.size;
+	out_simulator->core.info.rob.width = (*config).Width;
+	out_simulator->core.info.rob.remain = -1;//it not init in this time. it will init start of every cycle
+
+	out_simulator->core.info.lsq.blank = out_simulator->core.lsq->ll.size;
+	out_simulator->core.info.lsq.width = (*config).Width;
+	out_simulator->core.info.lsq.remain = -1;//it not init in this time. it will init start of every cycle
+
+	if (config->Width > 4)
+	{
+		out_simulator->core.info.load.blank = 3;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.blank = 2;
+	}
+	else if (config->Width > 1)
+	{
+		out_simulator->core.info.load.blank = 2;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.blank = 1;
+	}
+	else
+	{
+		out_simulator->core.info.load.blank = 1;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.blank = 1;
+	}
+	out_simulator->core.info.load.width = out_simulator->core.info.load.blank;
+	out_simulator->core.info.load.remain = -1;//it not init in this time. it will init start of every cycle
+	out_simulator->core.info.write.width = out_simulator->core.info.write.blank;
+	out_simulator->core.info.write.remain = -1;//it not init in this time. it will init start of every cycle
+
+
+	// Cache
+	if (config->Cache_size <= 0)
+	{//it mean perfect cache mode.
+		out_simulator->cache.is_perfect_cache = true;
+		out_simulator->cache.cache = NULL;
+		out_simulator->cache.cont = NULL;
+		out_simulator->cache.stat = NULL;
+	}
+	else
+	{
+		out_simulator->cache.is_perfect_cache = false;
+
+		struct cache_config cache_config;
+		cache_config.block_size = 32;//need edit
+		cache_config.capacity = config->Cache_size;
+		cache_config.way_numbers = 8;
+		cache_config.set_numbers = cache_config.capacity/cache_config.block_size/cache_config.way_numbers;
+		
+		void** cache_object = (void**)cache_initializer(&cache_config);
+		if (cache_object == NULL)
+		{//malloc error
+			return 1;
+		}
+		out_simulator->cache.cache = cache_object[1];
+		out_simulator->cache.cont = cache_object[0];
+		out_simulator->cache.stat = cache_object[2];
+		if (out_simulator->cache.cache == NULL || out_simulator->cache.cont == NULL || out_simulator->cache.stat == NULL)
+		{//malloc error
+			return 1;
+		}
+		free(cache_object);
+	}
+	
+}
+
+bool is_work_left(struct THREAD* threads, struct simulator_data* simulator)
+{
+	bool is_work_left = false;
+	for (int i = 0; i < simulator->info.num_of_inst; i++) {
+		//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
+		if ((threads[i].length != threads[i].pc) || ((simulator->core.rob)->ll.tail != (simulator->core.rob)->ll.head))
+		{
+			is_work_left = true;
+			break;
+		}
+	}
+	return is_work_left;
+}
+
+void remains_update_ele(struct cons_remaining* remaining)
+{
+	remaining->remain =
+		(remaining->blank) < (remaining->width) ?
+		(remaining->blank) : (remaining->width);
+}
+
+void remains_update(struct simulator_data* simulator)
+{
+	remains_update_ele(&(simulator->core.info.fq));
+	remains_update_ele(&(simulator->core.info.rob));
+	remains_update_ele(&(simulator->core.info.lsq));
+	remains_update_ele(&(simulator->core.info.load));
+	remains_update_ele(&(simulator->core.info.write));
 }
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info)
@@ -609,23 +723,35 @@ void lsq_issue_ex_retire(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR 
 	}
 }
 */
-void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, struct SIMUL_INFO* info)
+void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 {
-	int i;//iter
+	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
+	// --(simul->core.info.write.remain) 이 된다.
+	//miss이면 lsq 가 time 50근처로 설정되고,
+	// --(simul->core.info.write.remain) 이 된다.
+}
+
+void commit(struct simulator_data* simul)
+{
+
+	struct ROB_ARR* rob = simul->core.rob;
+	struct RAT_ARR* rat = simul->core.rat;
+
+	int remain_commit = (simul->core.info.rob.width);
+
 	struct ROB* rob_ptr;//for easier code
 	int rob_ptr_idx;
-	int remain_of_search = (*config).Width;// Only permits upto N commits
-
-	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크
+	
+	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크하기 위한 함수
 	bool commit_done = false;
-	bool* thread_commit = (bool*)calloc(info->num_of_inst,sizeof(bool));
-	for (i = 1; i < info->num_of_inst; ++i) { thread_commit[i] = true; }
+	bool* thread_commit = (bool*)calloc(simul->info.num_of_inst,sizeof(bool));
+	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
 	rob_ptr = (rob->rob)+(rob_ptr_idx);
-	do{
-
+	for (int i = 0; i < simul->core.rob->ll.occupied && remain_commit && !commit_done> 0; ++i)
+	{//rob 내의 모든 원소에 대해서만 검사하면 됨. 또한 커밋 횟수가 남아있을때만 검사하면 됨. 또한 모든 커밋이 끝나지 않았을때 검사하면 됨.
 		if (thread_commit[rob_ptr->inst_num])
 		{//아직 해당 inst의 커밋이 끝나지 않았다면,
 			switch (rob_ptr->status)
@@ -633,31 +759,28 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, str
 			case C:
 				rat[rob_ptr->inst_num].rat[rob_ptr->dest].RF_valid = true;
 				ll_cnt_pop(&(rob->ll), rob_ptr_idx);
-				--remain_of_search;
+				--remain_commit;
+
+				if (rob_ptr->opcode == MemWrite)
+				{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
+					
+					int lsq_dest = (simul->core.rs->rs[rob_ptr->rs_dest].lsq_dest);
+					lsq_write_issue(simul, lsq_dest);
+
+				}
 				break;
 			case P:
 				thread_commit[rob_ptr->inst_num] = false;
-				
 				//inst 커밋이 하나 끝날 때마다 전체 inst 커밋이 끝났는지 검사
 				commit_done = true;
-				for (i = 1; i < info->num_of_inst; ++i) {
+				for (i = 1; i < simul->info.num_of_inst; ++i) {
 					commit_done &= (!thread_commit[i]);
 				}
 			}
 		}
-
 		//다음 ROB로 포인터를 옮긴다
 		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
-
-		//종료 조건 검사
-		if (commit_done || //커밋이 끝났거나
-			remain_of_search == 0 || //이미 width만큼 커밋했거나
-			rob_ptr_idx == rob->ll.head) //이미 전부 검사했다면
-		{
-			break;
-		}
-			
-	} while (true);
+	}
 }
 
