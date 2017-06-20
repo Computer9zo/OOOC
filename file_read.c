@@ -11,6 +11,31 @@ bool read_instruction(FILE *in_filename, struct INST * out_inst)
 	return char_to_INST(buffer, out_inst);
 }
 
+bool make_thread(char* filename, int num_of_file, struct THREAD ** out_threads)
+{//inst to thread package function
+	struct INST** _inst_arrays;
+	int*		  _inst_arrays_len;
+	if (make_inst_array(filename, &_inst_arrays, &_inst_arrays_len))
+	{
+		(*out_threads) = (struct THREAD*)calloc(num_of_file, sizeof(struct THREAD));//thread array create
+		if ((*out_threads) == NULL)
+		{//mem alloc failed
+			return 1;
+		}
+		for (int i = 0; i < num_of_file; ++i)
+		{//init threads
+			(*out_threads)[i] = THREAD_create(_inst_arrays[i], _inst_arrays_len[i]);
+		}
+		free(_inst_arrays);
+		free(_inst_arrays_len);
+	}
+	else
+	{//some problem in make inst array.
+		return 1;
+	}
+	return 0;
+}
+
 bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len)
 {		
 	printf("Read %s ", filename);
@@ -145,7 +170,7 @@ bool char_to_INST(char* buffer, struct INST * out_inst)
 	out_inst->dest = atoi(strtok(NULL, " "));
 	out_inst->oprd_1 = atoi(strtok(NULL, " "));
 	out_inst->oprd_2 = atoi(strtok(NULL, " "));
-	//if (out_inst->op != IntAlu) { out_inst->oprd2 = atoi(strtok(NULL, " ")); }
+	if (out_inst->opcode != IntAlu) { out_inst->oprd_2 = atoi(strtok(NULL, " ")); }
 
 	return true;
 }

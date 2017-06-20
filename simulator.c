@@ -3,14 +3,58 @@
 #include <stdbool.h>
 #include "data_structures.h"
 #include "cache.h"
-//파일 내 글로벌로 선언
 
 
+int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report);
 
+struct simulator_data
+{
+	struct cons_core
+	{
+		//core
+		struct FQ_ARR* fq;//패치큐
+		struct RS_ARR* rs;//레서브 스테이션
+		struct LSQ_ARR* lsq;//로드 스토어 큐
+		struct ROB_ARR* rob;//리오더 버퍼
+		struct RAT_ARR* rat;//레지스터 아키텍쳐 테이블
 
-int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst, struct REPORT *out_report);
-struct SIMUL_INFO;
+		struct core_info
+		{
+			int fq_remain;//현재 남은 빈 공간 수
+			int fq_new_blank;//이번 사이클에서 새로 생긴 빈공간 수
+			int rob_remain;
+			int rob_new_blank;
+			int lsq_remain;
+			int lsq_new_blank;
+			int load_remain;
+			int write_remain;
+			int load_new_blank;
+			int write_new_blank;
+		} info;
+	} core;
+	struct cons_cache
+	{
+		struct cons_cache_controller *cont;
+		struct cons_cache *cache;
+		struct statistics *stat;
+	} cache;
+	struct const_simul_info
+	{
+		int num_of_inst;
 
+		int Total_Insts;
+		int*Inst_per_thread;
+
+		int cycle;
+
+		int cnt_Insts;//sum of under 3
+		int cnt_IntAlu;
+		int cnt_MemRead;
+		int cnt_MemWrite;
+	}info;
+};
+
+int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num);
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
 void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, struct ROB_ARR *lsq, int* decoded, struct SIMUL_INFO *info);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
@@ -27,11 +71,12 @@ void wait(void);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int core_simulator(struct CONFIG *config, struct INST **arr_inst, int* arr_inst_len, int num_of_inst, struct REPORT *out_report)
+int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report)
 {
 	//출력을 위한 공백 확보
 	printf("\n");
 
+	int simulator_initialize(config, struct THREAD* threads, int thread_num);
 	//파일 내 글로벌 초기화
 	struct SIMUL_INFO info;
 	info.num_of_inst = num_of_inst;
@@ -616,20 +661,3 @@ void commit(struct CONFIG *config, struct ROB_ARR *rob, struct RAT_ARR* rat, str
 	} while (true);
 }
 
-struct SIMUL_INFO
-{
-	int num_of_inst;
-
-	int cycle;
-	int cnt_IntAlu;
-	int cnt_MemRead;
-	int cnt_MemWrite;
-
-	int fetch_blank;
-	int ROB_blank;
-	int load_blank;
-	int save_blank;
-	int load_add_blank;
-	int save_add_blank;
-	int currnt_fetch;
-};

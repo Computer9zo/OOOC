@@ -30,6 +30,7 @@ struct LSQ_ARR;// Load Store queue
 //creator & deletor
 
 struct THREAD THREAD_create(struct INST* inst_arr, int inst_len);
+void THREAD_delete(struct THREAD rat);
 
 struct RAT_ARR RAT_create(int num_of_register);
 void RAT_delete(struct RAT_ARR rat);

@@ -15,8 +15,8 @@ void disp_error(void);
 
 const char *get_filename(const char* filepath);//get filename from full filepath
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
-	              struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name);//package for reading function with statement
-int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num);//free data
+	              struct THREAD** out_threads, int* out_inst_num, char* out_report_name);//package for reading function with statement
+int free_all_data(struct THREAD** out_threads, int out_inst_num);//free data
 
 int main(int argc, char* argv[])
 {
@@ -25,20 +25,19 @@ int main(int argc, char* argv[])
 
 	//declear data containers
 	struct CONFIG config; //config
-	struct INST** inst_arr = NULL;//inst_arr's array
-	int*          inst_len = NULL;//inst_arr's length array
-	int           inst_num = 0;//inst_arr's array length
+	struct THREAD*threads = NULL;//inst_arr's array
+	int           thread_num = 0;//inst_arr's array length
 	char		  report_name[256]; report_name[0] = 0;//report filename 
-
+	
 	//read data
-	if (read_all_data(argc, argv, &config, &inst_arr, &inst_len, &inst_num, report_name) != 0) {
+	if (read_all_data(argc, argv, &config, &threads, &thread_num, report_name) != 0) {
 		disp_error();
 		return 1; //if there is error, quit
 	}
 	
 	//run simulation
 	struct REPORT report;
-	if (core_simulator(&config, inst_arr, inst_len, inst_num, &report) != 0) { //simulate
+	if (core_simulator(&config, threads, thread_num, &report) != 0) { //simulate
 		disp_error();
 		return 1; //if there is error, quit
 	}
@@ -58,7 +57,7 @@ int main(int argc, char* argv[])
 	printf("Report saved : %s", report_name);
 	printf("\n\n");
 	
-	free_all_data(inst_arr, inst_len, inst_num);
+	free_all_data(threads, thread_num);
 	disp_end();
 	return 0;//program quit
 }
@@ -106,7 +105,7 @@ const char *get_filename(const char* filepath)//get filename from full filepath
 }
 
 int read_all_data(int argc, char** argv, struct CONFIG* out_config,
-	struct INST*** out_inst_arrs, int** out_inst_len, int* out_inst_num, char* report_name)
+	struct THREAD** out_threads, int* out_inst_num, char* out_report_name)
 	//package for reading function with statement
 {
 	if (argc < 3) {//no inst	
@@ -134,30 +133,29 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 			strcat(inst_filename, ",");
 			strcat(inst_filename, argv[idx+1]);
 		}
-		if (!make_inst_array(inst_filename+1, out_inst_arrs, out_inst_len)) {
+		if (!make_thread(inst_filename + 1, *out_inst_num, out_threads)) {
 			printf("Data read error\n");
 			//return 1;
 		}
 		free(inst_filename);
 
 		//make report name
-		strcat(report_name, get_filename(argv[1]));
+		strcat(out_report_name, get_filename(argv[1]));
 		for (int idx = 0; idx < (*out_inst_num); ++idx) {
-			strcat(report_name, "_");
-			strcat(report_name, get_filename(argv[idx+2]));
+			strcat(out_report_name, "_");
+			strcat(out_report_name, get_filename(argv[idx+2]));
 		}
-		strcat(report_name, "_out.out");
+		strcat(out_report_name, "_out.txt");
 	}
 	return 0;
 }
 
-int free_all_data(struct INST** out_inst_arrs, int* out_inst_len, int out_inst_num)//free data
+int free_all_data(struct THREAD* out_threads, int out_inst_num)//free data
 {
 	for (int idx = 0; idx < out_inst_num; ++idx) {
-		free(out_inst_arrs[idx]);
+		thread_delete(&out_threads[idx]);
 	}
-	free(out_inst_arrs);
-	free(out_inst_len);
+	free(out_threads);
 	
 	return 0;
 }

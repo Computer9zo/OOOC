@@ -1,3 +1,168 @@
-﻿  main.c
-  forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.exe
-  forvs_oooc.vcxproj -> F:\Deposit\Local Git\OOOC\forvs_oooc\Debug\forvs_oooc.pdb (Partial PDB)
+﻿  simulator.c
+f:\deposit\local git\oooc\cache.h : warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+f:\deposit\local git\oooc\simulator.c(13): error C2085: 'fetch': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(14): error C2085: 'decode': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(15): error C2085: 'value_payback': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(16): error C2085: 'decode_and_value_payback': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(17): error C2085: 'issue': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(18): error C2085: 'execute': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(19): error C2085: 'rs_retire': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(21): error C2085: 'ex_and_issue': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(22): error C2085: 'commit': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(24): error C2085: 'wait': not in formal parameter list
+f:\deposit\local git\oooc\simulator.c(30): error C2082: redefinition of formal parameter 'core_simulator'
+f:\deposit\local git\oooc\simulator.c(30): error C2143: syntax error: missing ';' before '{'
+f:\deposit\local git\oooc\simulator.c(34): warning C4550: expression evaluates to a function which is missing an argument list
+f:\deposit\local git\oooc\simulator.c(36): error C2079: 'info' uses undefined struct 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(37): error C2224: left of '.num_of_inst' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(38): error C2224: left of '.cnt_IntAlu' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(39): error C2224: left of '.cnt_MemRead' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(40): error C2224: left of '.cnt_MemWrite' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(41): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(42): error C2224: left of '.currnt_fetch' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(82): error C2224: left of '.load_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(82): error C2224: left of '.load_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(83): error C2224: left of '.save_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(83): error C2224: left of '.save_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(87): error C2224: left of '.load_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(87): error C2224: left of '.load_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(88): error C2224: left of '.save_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(88): error C2224: left of '.save_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(92): error C2224: left of '.load_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(92): error C2224: left of '.load_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(93): error C2224: left of '.save_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(93): error C2224: left of '.save_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(119): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(122): error C2224: left of '.fetch_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(123): error C2224: left of '.ROB_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(124): error C2224: left of '.load_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(124): error C2224: left of '.load_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(125): error C2224: left of '.save_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(125): error C2224: left of '.save_add_blank' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(130): warning C4013: 'commit' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(131): warning C4013: 'ex_and_issue' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(136): warning C4013: 'decode_and_value_payback' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(139): warning C4013: 'fetch' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(147): error C2224: left of '.num_of_inst' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(151): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(152): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(159): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(163): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(168): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(170): warning C4047: 'function': 'const RAT_ARR *' differs in levels of indirection from 'RAT_ARR (*)[1]'
+f:\deposit\local git\oooc\simulator.c(170): warning C4024: 'RAT_arr_printer': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\simulator.c(173): warning C4013: 'wait' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(190): error C2224: left of '.num_of_inst' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(196): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(198): error C2224: left of '.num_of_inst' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(198): error C2198: 'calloc': too few arguments for call
+f:\deposit\local git\oooc\simulator.c(199): error C2224: left of '.num_of_inst' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(203): error C2224: left of '.cnt_IntAlu' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(204): error C2224: left of '.cnt_MemRead' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(205): error C2224: left of '.cnt_MemWrite' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(206): error C2224: left of '.cycle' must have struct/union type
+f:\deposit\local git\oooc\simulator.c(49): error C2075: 'threads': array initialization requires a brace-enclosed initializer list
+f:\deposit\local git\oooc\simulator.c(55): error C2075: 'rat': array initialization requires a brace-enclosed initializer list
+f:\deposit\local git\oooc\simulator.c(159): warning C4473: 'printf' : not enough arguments passed for format string
+  f:\deposit\local git\oooc\simulator.c(159): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  f:\deposit\local git\oooc\simulator.c(159): note: the missing variadic argument 1 is required by format string '%-5d'
+f:\deposit\local git\oooc\simulator.c(163): warning C4473: 'printf' : not enough arguments passed for format string
+  f:\deposit\local git\oooc\simulator.c(163): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  f:\deposit\local git\oooc\simulator.c(163): note: the missing variadic argument 1 is required by format string '%-5d'
+f:\deposit\local git\oooc\simulator.c(168): warning C4473: 'printf' : not enough arguments passed for format string
+  f:\deposit\local git\oooc\simulator.c(168): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  f:\deposit\local git\oooc\simulator.c(168): note: the missing variadic argument 1 is required by format string '%-5d'
+f:\deposit\local git\oooc\simulator.c(218): error C2371: 'fetch': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(221): error C2037: left of 'currnt_fetch' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(223): error C2037: left of 'fetch_blank' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(225): error C2037: left of 'currnt_fetch' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(240): error C2037: left of 'currnt_fetch' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(247): error C2037: left of 'num_of_inst' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(248): error C2037: left of 'currnt_fetch' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(248): error C2037: left of 'num_of_inst' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(254): error C2037: left of 'currnt_fetch' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(266): error C2037: left of 'ROB_blank' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(276): error C2037: left of 'cnt_IntAlu' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(279): error C2037: left of 'cnt_MemRead' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(282): error C2037: left of 'cnt_MemWrite' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(364): error C2371: 'decode_and_value_payback': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(412): warning C4013: 'rs_retire' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(415): warning C4013: 'lsq_issue' undefined; assuming extern returning int
+f:\deposit\local git\oooc\simulator.c(427): error C2371: 'ex_and_issue': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(470): error C2371: 'wait': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(476): error C2371: 'rs_retire': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(567): error C2371: 'commit': redefinition; different basic types
+f:\deposit\local git\oooc\simulator.c(576): error C2037: left of 'num_of_inst' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(576): error C2198: 'calloc': too few arguments for call
+f:\deposit\local git\oooc\simulator.c(577): error C2037: left of 'num_of_inst' specifies undefined struct/union 'SIMUL_INFO'
+f:\deposit\local git\oooc\simulator.c(598): error C2037: left of 'num_of_inst' specifies undefined struct/union 'SIMUL_INFO'
+  main.c
+f:\deposit\local git\oooc\main.c(33): error C2065: 'inst_len': undeclared identifier
+f:\deposit\local git\oooc\main.c(33): warning C4133: 'function': incompatible types - from 'int *' to 'char *'
+f:\deposit\local git\oooc\main.c(33): warning C4020: 'read_all_data': too many actual parameters
+f:\deposit\local git\oooc\main.c(40): error C2065: 'inst_len': undeclared identifier
+f:\deposit\local git\oooc\main.c(40): warning C4047: 'function': 'REPORT *' differs in levels of indirection from 'int'
+f:\deposit\local git\oooc\main.c(40): warning C4024: 'core_simulator': different types for formal and actual parameter 4
+f:\deposit\local git\oooc\main.c(40): warning C4020: 'core_simulator': too many actual parameters
+f:\deposit\local git\oooc\main.c(60): warning C4047: 'function': 'THREAD **' differs in levels of indirection from 'THREAD *'
+f:\deposit\local git\oooc\main.c(60): warning C4024: 'free_all_data': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\main.c(60): error C2065: 'inst_len': undeclared identifier
+f:\deposit\local git\oooc\main.c(60): warning C4020: 'free_all_data': too many actual parameters
+f:\deposit\local git\oooc\main.c(154): warning C4028: formal parameter 1 different from declaration
+f:\deposit\local git\oooc\main.c(157): error C2143: syntax error: missing ';' before '}'
+  file_read.c
+f:\deposit\local git\oooc\file_read.c(45): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(45): warning C4024: 'strcpy': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(46): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(46): warning C4024: 'strtok': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(53): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(53): warning C4024: 'strcpy': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\file_read.c(60): warning C4047: 'function': 'char *' differs in levels of indirection from 'char *[4096]'
+f:\deposit\local git\oooc\file_read.c(60): warning C4024: 'strtok': different types for formal and actual parameter 1
+  data_structures.c
+f:\deposit\local git\oooc\data_structures.c(20): warning C4013: 'calloc' undefined; assuming extern returning int
+f:\deposit\local git\oooc\data_structures.c(32): warning C4013: 'free' undefined; assuming extern returning int
+f:\deposit\local git\oooc\data_structures.c(38): warning C4047: '=': 'FQ *' differs in levels of indirection from 'int'
+f:\deposit\local git\oooc\data_structures.c(139): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(139): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(139): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(139): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(142): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(142): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(142): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(142): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(145): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(145): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(145): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(145): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(218): warning C4090: 'function': different 'const' qualifiers
+f:\deposit\local git\oooc\data_structures.c(255): warning C4028: formal parameter 2 different from declaration
+f:\deposit\local git\oooc\data_structures.c(258): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(258): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(258): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(258): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(259): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(259): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(259): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(259): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(260): warning C4047: 'function': 'LL_status *' differs in levels of indirection from 'const int'
+f:\deposit\local git\oooc\data_structures.c(260): warning C4024: 'll_get_cidx': different types for formal and actual parameter 1
+f:\deposit\local git\oooc\data_structures.c(260): warning C4047: 'function': 'int' differs in levels of indirection from 'LL_status *'
+f:\deposit\local git\oooc\data_structures.c(260): warning C4024: 'll_get_cidx': different types for formal and actual parameter 2
+f:\deposit\local git\oooc\data_structures.c(282): warning C4028: formal parameter 2 different from declaration
+  cache.c
+f:\deposit\local git\oooc\cache.h : warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+f:\deposit\local git\oooc\cache.c(23): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(25): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(28): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(37): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(55): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(57): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(68): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(69): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(70): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(87): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(136): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(137): error C2109: subscript requires array or pointer type
+f:\deposit\local git\oooc\cache.c(189): error C2109: subscript requires array or pointer type
+  Generating Code...

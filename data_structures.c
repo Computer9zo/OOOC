@@ -14,6 +14,11 @@ struct THREAD THREAD_create(struct INST* inst_arr, int inst_len)
 	return result;
 }
 
+void THREAD_delete(struct THREAD* thread)
+{
+	free(thread->instruction);
+}
+
 struct RAT_ARR RAT_create(int num_of_register)
 {
 	struct RAT_ARR result;
