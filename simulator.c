@@ -60,7 +60,7 @@ bool is_work_left(struct THREAD* threads, struct simulator_data* simulator);
 
 void remains_update(struct simulator_data* simulator);
 
-void commit(struct CONFIG *config, struct simulator_data* simul);
+void commit(struct simulator_data* simul);
 
 
 void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
@@ -105,7 +105,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
-		commit(config, &rob, rat, &info);
+		commit(&simul_data);
 		ex_and_issue(config, &rob, &rs, &lsq, cache_object, &info);
 		//issue();
 
