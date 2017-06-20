@@ -92,6 +92,8 @@ struct CONFIG//config
 	int Width;
 	int ROB_size;
 	int RS_size;
+	int LSQ_size;
+	int Cache_size;
 };
 
 struct REPORT

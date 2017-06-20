@@ -156,7 +156,7 @@ bool config_reader(char* filename, struct CONFIG *out_config)
 	char buffer[30]; buffer[0] = 0;
 	FILE *configp;
 	if ((configp = fopen(filename, "r")) == NULL) { return false; }//if configp == null, it mean fail.
-	for (int idx = 0; idx < 4; ++idx)
+	for (int idx = 0; idx < 6; ++idx)
 	{
 		fgets(buffer, 30, configp);
 		if (buffer[0] == 0) { return false; }//there is lack of arg
@@ -165,7 +165,9 @@ bool config_reader(char* filename, struct CONFIG *out_config)
 		case 0: out_config->Dump = atoi(buffer); break;
 		case 1: out_config->Width = atoi(buffer); break;
 		case 2: out_config->ROB_size = atoi(buffer); break;
-		case 3: out_config->RS_size = atoi(buffer);
+		case 3: out_config->RS_size = atoi(buffer); break;
+		case 4: out_config->LSQ_size = atoi(buffer); break;
+		case 5: out_config->Cache_size = atoi(buffer);
 		}
 	}
 	return true;
