@@ -519,8 +519,12 @@ void value_payback(struct RS *rs_ele, struct ROB_ARR *rob)
 	}
 }
 
-void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info)
+void decode_and_value_payback(struct simulator_data* simul)
 {
+	struct RS_ARR* rs = simul->core.rs;
+	struct ROB_ARR* rob = simul->core.rob;
+
+	//struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info
 	int decoded = 0;
 	// For every entries in Reservation Station,
 	for (int i = 0; i < rs->size; i++)
@@ -545,40 +549,55 @@ void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struc
 }
 
 
-void issue(struct CONFIG *config, struct RS *rs_ele, int* issued)
+void issue(struct RS *rs_ele, int* issue_remain)
 {
-	if (*issued < (*config).Width)
-	{//아직 width만큼 issue가 되지 않았다면
+	if (*issue_remain > 0)
+	{
 		if ((*rs_ele).oprd_1.state == V &&
 			(*rs_ele).oprd_2.state == V)
 		{//issue 조건을 검사하고 만족한다면, issue를 한다.
 			(*rs_ele).time_left = 0;
-			++(*issued);
-		}			
+			--(*issue_remain);
+		}
 	}
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info)
+void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
+{
+	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
+	// --(simul->core.info.write.remain) 이 된다.
+	//miss이면 lsq 가 time 50근처로 설정되고,
+	// --(simul->core.info.write.remain) 이 된다.
+}
+void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
+{
+	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
+	// --(simul->core.info.write.remain) 이 된다.
+	//miss이면 lsq 가 time 50근처로 설정되고,
+	// --(simul->core.info.write.remain) 이 된다.
+}
+
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
 
-	if (rs_ele->time_left == 0)
-	{//만약 실행 대기중이라면, 
+	//if (rs_ele->time_left == 0)
+	//{//만약 실행 대기중이라면, 
 		
-		if (rs_ele->opcode = IntAlu) {//alu 펑션이라면 실행하고 RS를 비운 다음 ROB를 C 상태로 바꾼다.
+		if (rs_ele->opcode = IntAlu) {//load 펑션이 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
-		else {//alu 펑션이 아니라면 메모리 주소가 끝났으니 lsq의 작업을 한다.
-			lsq_issue(rs_ele, rob_ele, lsq, cache_object, info);
+		else {//load 펑션이라면 lsq issue를 한다.
+			lsq_load_issue(simul,rs_ele->lsq_dest);
 		}
 		rs_ele->is_completed_this_cycle = true;
 
-	}
-	else
-	{//만약 issue가 되어있다면,
-		--(rs_ele->time_left);//ALU에 넣는다 ( 실행 대기 단계 ).
-	}
+	//}
+	//else
+	//{//만약 issue가 되어있다면,
+	//	--(rs_ele->time_left);//ALU에 넣는다 ( 실행 대기 단계 ).
+	//}
 
 }
 
@@ -593,7 +612,7 @@ void ex_and_issue(struct simulator_data* simul)
 	int rob_ptr_idx;
 	struct RS  * rs_ele;
 
-	int issued = 0;
+	int issue_remain = simul->core.info.rob.width;
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
@@ -607,14 +626,14 @@ void ex_and_issue(struct simulator_data* simul)
 			
 			rs_ele = (rs->rs) + (rob_ptr->rs_dest);
 
-			if (rs_ele->time_left >= 0)
+			if (rs_ele->time_left == 0)
 			{//만약 Issue 되었다면
 				execute(rs_ele, rob_ptr, simul);
-				//rs와 lsq의 실행 및 실행 완료한다.
+				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
 			}
 			else
 			{//만약 Issue 안되었다면
-				issue(config, rs_ele, &issued);
+				issue(rs_ele,&issue_remain);
 				//이슈 조건을 검사하고 부합할 경우 이슈한다.
 			}
 
@@ -632,14 +651,6 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele)
 {
 	rob_ele->status = C;
 	(*rs_ele).is_valid = false;
-}
-
-void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
-{
-	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
-	// --(simul->core.info.write.remain) 이 된다.
-	//miss이면 lsq 가 time 50근처로 설정되고,
-	// --(simul->core.info.write.remain) 이 된다.
 }
 
 void commit(struct simulator_data* simul)
