@@ -519,6 +519,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				lsq->lsq[lsq->ll.tail].address = -1;
 				lsq->lsq[lsq->ll.tail].rob_dest = rob->ll.tail;
 				lsq->lsq[lsq->ll.tail].time = -1;
+				lsq->lsq[lsq->ll.tail].status = P;
 				rs_ele->lsq_dest = lsq->ll.tail;
 				lsq_push(simul);
 
