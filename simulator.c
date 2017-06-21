@@ -7,6 +7,9 @@
 
 int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report);
 
+void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+
+void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
 
 struct cons_remaining
 {
@@ -133,6 +136,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	
 	while (is_work_left(threads, &simul_data))
 	{	
+		//TODO: Check here ! Core logic
 		//cycle plus
 		++(simul_data.info.cycle);
 
@@ -146,8 +150,13 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
 		
-		lsq_ex_and_retire(&simul_data);
+		//lsq_ex_and_retire(&simul_data);
+		lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+		lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+
 		//issue();
+		
+		
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
