@@ -213,6 +213,7 @@ struct ROB// Reorder Buffer
 	enum is_complete status; // status = P; means pending, status = C; means completed
 	int rs_dest;//linked RS index
 	int inst_num;//where it from
+	int lsq_source;
 };
 
 struct ROB_ARR

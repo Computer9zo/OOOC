@@ -532,6 +532,10 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].rs_dest = rs_idx;
 			rob->rob[rob->ll.tail].status = P;
 			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
+
+			//TODO: Check is this right?
+			rob->rob[rob->ll.tail].lsq_source = lsq->ll.tail;
+
 			(*rs_ele).rob_dest = rob->ll.tail;
 			rob_push(simul);
 
@@ -608,7 +612,7 @@ void issue(struct RS *rs_ele, int* issue_remain)
 	}
 }
 
-// TODO: LSQ 관련 함수들 만들었당께
+// TODO: LSQ 관련 함수들 만들
 void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
 {
 	
@@ -956,6 +960,11 @@ void commit(struct simulator_data* simul)
 
 	struct ROB_ARR* rob = simul->core.rob;
 	struct RAT_ARR* rat = simul->core.rat;
+	struct LSQ_ARR *lsq_arr = simul->core.lsq;
+
+	struct cons_cache_controller *cache_cont = simul->cache.cont;
+	struct cons_cache *cache = simul->cache.cache;
+	struct statistics *stat = simul->cache.stat;
 
 	int remain_commit = (simul->core.info.rob.width);
 
@@ -980,14 +989,34 @@ void commit(struct simulator_data* simul)
 				rat[rob_ptr->inst_num].rat[rob_ptr->dest].RF_valid = true;
 				ll_cnt_pop(&(rob->ll), rob_ptr_idx);
 				--remain_commit;
-
+				
+				// Actual cache write happens
 				if (rob_ptr->opcode == MemWrite)
-				{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
-					
-					int lsq_dest = (simul->core.rs->rs[rob_ptr->rs_dest].lsq_dest);
-					lsq_write_issue(simul, lsq_dest);
+				{
+					if((*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].was_hit == HIT)
+					{
+						// If it was HIT, just write 
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+					}
+					else
+					{
+						// If it was MISS, fill cache first and the write
+						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
 
+					}
 				}
+				
+				// Remove from LSQ
+				ll_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
+
+				//if (rob_ptr->opcode == MemWrite)
+				//{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
+				//	
+				//	int lsq_dest = (simul->core.rs->rs[rob_ptr->rs_dest].lsq_dest);
+				//	lsq_write_issue(simul, lsq_dest);
+				//
+				//}
 				break;
 			case P:
 				thread_commit[rob_ptr->inst_num] = false;
