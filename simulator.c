@@ -9,7 +9,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 
 struct simulator_data
 {
-	struct cons_core
+	struct con_core
 	{
 		//core
 		struct FQ_ARR* fq;//패치큐
@@ -25,7 +25,7 @@ struct simulator_data
 			int current_fetch_inst;
 		} info;
 	} core;
-	struct cons_cache
+	struct con_cache
 	{
 		struct cons_cache_controller *cont;
 		struct cons_cache *cache;
@@ -57,6 +57,34 @@ struct cons_remaining
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
 
+void simul_free(struct simulator_data* out_simulator) 
+{
+	
+	FQ_delete(*out_simulator->core.fq);
+	RS_delete(*out_simulator->core.rs);
+	ROB_delete(*out_simulator->core.rob);
+	LSQ_delete(*out_simulator->core.lsq);
+	for (int i = 0; i < out_simulator->info.num_of_inst; ++i) {
+		RAT_delete(out_simulator->core.rat[i]);
+	}
+	free(out_simulator->core.rat);
+}
+
+void write_report(struct simulator_data* out_simulator, struct REPORT* out_report)
+{
+	out_report->Cycles = out_simulator->info.cycle;
+	out_report->Total_Insts += out_simulator->info.Total_Insts;
+	out_report->Inst_per_thread = (int*)calloc(out_simulator->info.num_of_inst, sizeof(int));
+	for (int i = 0; i <  out_simulator->info.num_of_inst; ++i) {
+		
+		out_report->Inst_per_thread[i] = out_simulator->info.Inst_per_thread[i];
+	}
+	out_report->IntAlu = out_simulator->info.cnt_IntAlu;
+	out_report->MemRead = out_simulator->info.cnt_MemRead;
+	out_report->MemWrite = out_simulator->info.cnt_MemWrite;
+	out_report->IPC = ((double)(out_report->Total_Insts) / (double)out_report->Cycles);
+}
+
 bool is_work_left(struct THREAD* threads, struct simulator_data* simulator);
 
 void remains_update(struct simulator_data* simulator);
@@ -65,14 +93,12 @@ void commit(struct simulator_data* simul);
 void ex_and_issue(struct simulator_data* simulator);
 void decode_and_value_payback(struct simulator_data* simul);
 void fetch(struct THREAD *inst, struct simulator_data* simul);
-
-
-
 void issue(struct RS *rs_ele, int* issue_remain);
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
+void disp_debug(struct simulator_data* simul);
 
 
 void lsq_push(struct simulator_data* simul);
@@ -81,6 +107,7 @@ void rob_push(struct simulator_data* simul);
 void rob_pop(struct simulator_data* simul, int pop_idx);
 void fq_push(struct simulator_data* simul);
 void fq_pop(struct simulator_data* simul);
+
 
 
 void wait(void);
@@ -117,81 +144,28 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
+		
+		lsq_ex_and_retire(&simul_data);
 		//issue();
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
-		decode_and_value_payback(config, &rob, &lsq, &rs,&fq,&rat,&info);
-
+		decode_and_value_payback(&simul_data);
 		// Fetch instructions
 		fetch(threads,&simul_data);
 
 		// Dump
-		int total_len = 0;
-		int total_pc = 0;
-		switch ((*config).Dump)
-		{
-		case 0://display current percentage to do;
-			for (i = 0; i<info.num_of_inst; ++i){
-				total_len += threads[i].length;
-				total_pc += threads[i].pc;
-			}
-			if (info.cycle % 1000 == 0) {
-				if (info.cycle == 1) {
-					printf("Simulating =");
-				}
-				printf("%3d%%\b\b\b\b", total_pc *100 / total_len);
-			}
-			break;
-		case 1://rob print
-			printf("= Cycle %-5d\n", info.cycle);
-			ROB_arr_reporter(&rob);
-			break;
-		case 2://rob and rs print
-			printf("= Cycle %-5d\n", info.cycle);
-			RS_arr_reporter(&rs, &rob);
-			ROB_arr_reporter(&rob);
-			break;
-		default://debug mode
-			printf("= Cycle %-5d\n", info.cycle);
-			FQ_arr_printer(&fq);
-			RAT_arr_printer(&rat);
-			RS_arr_printer(&rs,&rob);
-			ROB_arr_printer(&rob);
-			wait();
-			break;
-		}
-
-		for (i = 0; i < num_of_inst; i++) {
-			//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
-			still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
-		}
+		disp_debug((*config).Dump);
+		
 	}
 
 	// Simulation finished
 	
 	//free array
-	FQ_delete(fq);
-	RS_delete(rs);
-	ROB_delete(rob);
-	LSQ_delete(lsq);
-	for (i = 0; i < info.num_of_inst; ++i) {
-		RAT_delete(rat[i]);
-	}
-	free(rat);
+	simul_free(&simul_data);
 
 	// Write a report
-	out_report->Cycles = info.cycle;
-	out_report->Total_Insts = 0;//inst_length;
-	out_report->Inst_per_thread = (int*)calloc(info.num_of_inst, sizeof(int));
-	for (i = 0; i<info.num_of_inst; ++i) {
-		out_report->Total_Insts += threads[i].length;
-		out_report->Inst_per_thread[i] = threads[i].length;
-	}
-	out_report->IntAlu = info.cnt_IntAlu;
-	out_report->MemRead = info.cnt_MemRead;
-	out_report->MemWrite = info.cnt_MemWrite;
-	out_report->IPC = ((double)(out_report->Total_Insts) / (double)info.cycle);
+	write_report(&simul_data, out_report);
 
 	if (config->Dump == 0) {printf("100%%");}
 
@@ -483,6 +457,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			fq_pop(simul);
 
 		 // Count Instruction number
+			++(simul->info.cnt_Insts);
 			switch (fq_ele->opcode)
 			{
 			case 0:
@@ -542,7 +517,6 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				lsq->lsq[lsq->ll.tail].opcode = fq_ele->opcode;
 				lsq->lsq[lsq->ll.tail].address = -1;
 				lsq->lsq[lsq->ll.tail].rob_dest = rob->ll.tail;
-				lsq->lsq[lsq->ll.tail].rs_dest = rs_idx;
 				lsq->lsq[lsq->ll.tail].time = -1;
 				rs_ele->lsq_dest = lsq->ll.tail;
 				lsq_push(simul);
@@ -635,49 +609,29 @@ void issue(struct RS *rs_ele, int* issue_remain)
 // TODO: LSQ 관련 함수들 만들었당께
 void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
 {
-	int width;
-	width = (*simul).core.info.issue.width;
-
-	int read_port;
-	int write_port;
+	
+	int read_port = simul->core.info.load.width;
+	int write_port = simul->core.info.write.width;
 
 	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
 	struct cons_cache *cache = (*simul).cache.cache;
 	struct statistics *stat = (*simul).cache.stat;
 	bool is_perfect_cache = (*simul).cache.is_perfect_cache;
 
-	if (width == 1)
-	{
-		read_port = 1;
-		write_port = 1;
-	}
-	else if (width > 1 && width <= 4)
-	{
-		read_port = 2;
-		write_port = 1;
-	}
-	else
-	{
-		read_port = 3;
-		write_port = 2;
-	}
-
 	// LSQ_ARR를 돌면서 issue를 한다
 	// Time count를 -1에서 초기화시킴.
 	int i = 0;
 	int addr;
 	int op;
-	
+	int time;
+
 	bool are_there_dangerous_stores = false;
-	struct order_stores
-	{
-		int num;
-		int addresses[(*lsq_arr).ll.size];
-	}
-	
+	int older_stores[lsq_arr[0].ll.occupied];	
+	int older_stores_num = 0;
+
 	if (is_perfect_cache)
 	{
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
 		{
 			op = (*lsq_arr[i].lsq).opcode;
 			addr = (*lsq_arr[i].lsq).address;
@@ -685,7 +639,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 			
 			if (op == MemRead) // MemRead case
 			{
-				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses and never been issued before
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
@@ -693,14 +647,14 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					read_port--;
 					i++;
 				}
-				else // No address yet or there are dangerous stores or been issued already
+				else // No address yet or there are dangerous stores
 				{
 					i++;
 				}
 			}
 			else // MemWrite case
 			{
-				if (time == -1 && addr != -1) // Address has been calculated and never been issued before 
+				if (addr != -1) // Address has been calculated
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
@@ -725,10 +679,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	else // Not perfect cache
 	{
 		bool is_hit;
-		struct order_stores stores;
-		stores.num = 0;
-
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
 		{
 			op = (*lsq_arr[i].lsq).opcode;
 			addr = (*lsq_arr[i].lsq).address;
@@ -736,7 +687,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 
 			if (op == MemRead) // MemRead case
 			{
-				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses and never been issued before 
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
 				{
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
@@ -749,9 +700,9 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 						(*lsq_arr[i].lsq).time = 52;
 						(*lsq_arr[i].lsq).was_hit = MISS;
 						int j;
-						for (j = 0; j <= stores.num; j++)
+						for (j = 0; j < older_stores_num; j++)
 						{
-							if ((*lsq_arr[i].lsq).address == stores.address[j])
+							if ((*lsq_arr[i].lsq).address == older_stores[j])
 							{
 								(*lsq_arr[i].lsq).time = 2;
 								(*lsq_arr[i].lsq).was_hit = FORWARD;
@@ -763,14 +714,14 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					read_port--;
 					i++;
 				}
-				else // No address yet or there are dangerous stores or already issued before
+				else // No address yet or there are dangerous stores
 				{
 					i++;
 				}
 			}
 			else // MemWrite case
 			{
-				if (time == -1 && addr != -1) // Address has been calculated and never been issued before ( time == -1 )
+				if (time == -1 && addr != -1) // Address has been calculated
 				{
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
@@ -786,16 +737,16 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 
 					(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
 
-					store.addresses[num] = (*lsq_arr[i].lsq).address;
-					store.num++;
+					older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+					older_stores_num++;
 
 					write_port--;
 					i++;
 				}
 				else if (time != -1) // Already issued
 				{
-					store.addresses[num] = (*lsq_arr[i].lsq).address;
-					store.num++;
+					older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+					older_stores_num++;
 					i++;
 				}
 				else // No address yet
@@ -819,12 +770,18 @@ void lsq_exe(struct simualator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_
 	int i;
 	int lsq_occupied = lsq_arr[0].ll.occupied;
 
-	struct order_stores stores;
-	stores.num = 0;
+	int older_stores[lsq_arr[0].ll.occupied];
+	int older_stores_num = 0;
 
 	for (i = 0; i < lsq_occupied; i++)
 	{	
-		if ((*lsq_arr[i].lsq).time == 0) // Cache access completed
+		if (((*lsq_arr[i].lsq).opcode == MemWrite) && (*lsq_arr[i].lsq).address != -1)
+		{
+			older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+			older_stores_num++;
+		}
+
+		if (((*lsq_arr[i].lsq).time == 0) && ((*lsq_arr[i].lsq).status == P)) // Cache access completed and never been commited to ROB
 		{
 			if ((*lsq_arr[i].lsq).opcode == MemRead) // MemRead case
 			{
@@ -834,32 +791,41 @@ void lsq_exe(struct simualator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_
 				}
 				else if ((*lsq_arr[i].lsq).was_hit == MISS)
 				{
-					cache_filler(cache_cont, cache, (*lsq_arr[i].lsq).address);
+					cache_filler(cache_cont, cache, stat, (*lsq_arr[i].lsq).address);
 					cache_reader(cache_cont, cache, (*lsq_arr[i].lsq).address);
 				}
+				
+				(*lsq_arr[i].lsq).status = C;
+				(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C; // Completed
+			}
+			else if ((*lsq_arr[i].lsq).opcode == MemWrite)
+			{
+				// Actual cache / memory access of MemWrite takes place when this instruction is vaporized from LSQ. !!	
+				(*lsq_arr[i].lsq).status = C;
+				(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
 			}
 		}
+		else if ((*lsq_arr[i].lsq).time > 0) // Still executing
+		{
+			if (((*lsq_arr[i].lsq).opcode == MemRead) && ((*lsq_arr[i].lsq).time > 2)) // Forwarding
+			{
+				int j;
+				for (j = 0; j < older_stores_num; j++)
+				{
+					if ((*lsq_arr[i].lsq).address == older_stores[j])
+					{
+						(*lsq_arr[i].lsq).time = 2;
+						break;
+					}
+				}
 			}
+
+			(*lsq_arr[i].lsq).time--;
 		}
-			
 	}
 
 }
 
-void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
-{
-	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
-	// --(simul->core.info.write.remain) 이 된다.
-	//miss이면 lsq 가 time 50근처로 설정되고,
-	// --(simul->core.info.write.remain) 이 된다.
-}
-void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
-{
-	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
-	// --(simul->core.info.write.remain) 이 된다.
-	//miss이면 lsq 가 time 50근처로 설정되고,
-	// --(simul->core.info.write.remain) 이 된다.
-}
 
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
 {
@@ -869,12 +835,12 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 	//if (rs_ele->time_left == 0)
 	//{//만약 실행 대기중이라면, 
 		
-		if (rs_ele->opcode = IntAlu) \
+		if ((rs_ele->opcode = IntAlu)) \
 		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
 		// TODO: 아래 두 케이스들을 체크 바람.
-		else if ((*rs_ele).opcode = MemRead) // MemRead
+		else if (((*rs_ele).opcode = MemRead)) // MemRead
 		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
 			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
 			rs_retire(rs_ele, rob_ele);
@@ -1005,4 +971,36 @@ void wait(void)
 {
 	printf("\nPress any key to continue :\n");
 	getchar();
+}
+
+void disp_debug(struct simulator_data* simul, int debug)
+{
+	switch (debug)
+	{
+	case 0://display current percentage to do;
+		if (simul->info.cycle % 1000 == 1) {
+			if (simul->info.cycle == 1) {
+				printf("Simulating =");
+			}
+			printf("%3d%%\b\b\b\b", simul->info.cnt_Insts * 100 / simul->info.Total_Insts);
+		}
+		break;
+	case 1://rob print
+		printf("= Cycle %-5d\n", simul->info.cycle);
+		ROB_arr_reporter(&rob);
+		break;
+	case 2://rob and rs print
+		printf("= Cycle %-5d\n", info.cycle);
+		RS_arr_reporter(&rs, &rob);
+		ROB_arr_reporter(&rob);
+		break;
+	default://debug mode
+		printf("= Cycle %-5d\n", info.cycle);
+		FQ_arr_printer(&fq);
+		RAT_arr_printer(&rat);
+		RS_arr_printer(&rs, &rob);
+		ROB_arr_printer(&rob);
+		wait();
+		break;
+	}
 }
