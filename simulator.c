@@ -22,6 +22,7 @@ struct simulator_data
 		{
 			// 남은 횟수 width나 빈공간중 작은거. 남은 횟수가 쓰인 만큼 ->빈공간이 준다., 작업이 완료된 만큼 빈공간이 는다
 			struct cons_remaining fq, rob, lsq, load, write;
+			int current_fetch_inst;
 		} info;
 	} core;
 	struct cons_cache
@@ -62,14 +63,24 @@ void remains_update(struct simulator_data* simulator);
 
 void commit(struct simulator_data* simul);
 void ex_and_issue(struct simulator_data* simulator);
+void decode_and_value_payback(struct simulator_data* simul);
+void fetch(struct THREAD *inst, struct simulator_data* simul);
 
-void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info);
-void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, struct ROB_ARR *lsq, int* decoded, struct SIMUL_INFO *info);
-void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
-void decode_and_value_payback(struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info);
-void issue(struct CONFIG *config, struct RS *rs_ele, int* issued);
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct ROB_ARR *lsq, void** cache_object, struct SIMUL_INFO* info);
+
+
+void issue(struct RS *rs_ele, int* issue_remain);
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
+void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
+void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
+
+
+void lsq_push(struct simulator_data* simul);
+void lsq_pop(struct simulator_data* simul, int pop_idx);
+void rob_push(struct simulator_data* simul);
+void rob_pop(struct simulator_data* simul, int pop_idx);
+void fq_push(struct simulator_data* simul);
+void fq_pop(struct simulator_data* simul);
 
 
 void wait(void);
@@ -113,7 +124,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		decode_and_value_payback(config, &rob, &lsq, &rs,&fq,&rat,&info);
 
 		// Fetch instructions
-		fetch(config, &fq, threads, &info);
+		fetch(threads,&simul_data);
 
 		// Dump
 		int total_len = 0;
@@ -307,6 +318,7 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 	out_simulator->core.info.write.width = out_simulator->core.info.write.blank;
 	out_simulator->core.info.write.remain = -1;//it not init in this time. it will init start of every cycle
 
+	out_simulator->core.info.current_fetch_inst = 0;
 
 	// Cache
 	if (config->Cache_size <= 0)
@@ -373,49 +385,87 @@ void remains_update(struct simulator_data* simulator)
 	remains_update_ele(&(simulator->core.info.write));
 }
 
-void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *inst, struct SIMUL_INFO* info)
+void fetch(struct THREAD *inst, struct simulator_data* simul)
 {
 
-	if (info->currnt_fetch >= 0)
+	if (simul->core.info.current_fetch_inst >= 0)
 	{//아직 fetch하지 않은 inst가 남아있다면,
-		int fetch_num = ((*config).Width > info->fetch_blank) ? info->fetch_blank : (*config).Width;
-		int i;
-		struct THREAD * current_thread = inst + (info->currnt_fetch);
+		
+		struct THREAD * current_thread = inst + (simul->core.info.current_fetch_inst);
 		struct INST* current_inst;
 		struct FQ* fq_ele;
 	
 
-		for (i = 0; i < fetch_num; i++)
+		while ( simul->core.info.fq.remain>0 )
 		{
 			//대입
-			fq_ele = (fetch_queue->fq) + (ca_next_pos(&(fetch_queue->ca)));
+			fq_ele = (simul->core.fq->fq) + (ca_next_pos(&(simul->core.fq->ca)));
 			current_inst = (current_thread->instruction) + (current_thread->pc);
 
 			fq_ele->opcode = current_inst->opcode;
 			fq_ele->dest = current_inst->dest;
 			fq_ele->oprd_1 = current_inst->oprd_1;
 			fq_ele->oprd_2 = current_inst->oprd_2;
-			fq_ele->inst_num = info->currnt_fetch;
+			fq_ele->inst_num = (simul->core.info.current_fetch_inst);
 
 			//수량 갱신
-			ca_cnt_push(&(fetch_queue->ca));
+			fq_push(simul);
 			++(current_thread->pc);
 
 			//다음 current_thread 정하기
-			for (int j = 1; j <= info->num_of_inst; ++j) {
-				current_thread = inst + (((info->currnt_fetch)+j)%(info->num_of_inst));
+			for (int j = 1; j <= simul->info.num_of_inst; ++j) {
+				current_thread = inst + (((simul->core.info.current_fetch_inst)+j)%(simul->info.num_of_inst));
 				if (current_thread->length != current_thread->pc) {
 					break;
 				}
 			}
 			if (current_thread->length == current_thread->pc) {
-				info->currnt_fetch = -1;
+				(simul->core.info.current_fetch_inst) = -1;
 				break;
 			}
 
 		}
 	
 	}
+}
+
+void lsq_push(struct simulator_data* simul)
+{
+	ll_cnt_push(&(simul->core.lsq->ll));
+	--(simul->core.info.lsq.blank);
+	--(simul->core.info.lsq.remain);
+}
+
+void lsq_pop(struct simulator_data* simul, int pop_idx)
+{
+	ll_cnt_pop(&(simul->core.lsq->ll), pop_idx);
+	++(simul->core.info.lsq.blank);
+}
+
+void rob_push(struct simulator_data* simul)
+{
+	ll_cnt_push(&(simul->core.rob->ll));
+	--(simul->core.info.rob.blank);
+	--(simul->core.info.rob.remain);
+}
+
+void rob_pop(struct simulator_data* simul, int pop_idx)
+{
+	ll_cnt_pop(&(simul->core.rob->ll), pop_idx);
+	++(simul->core.info.rob.blank);
+}
+
+void fq_push(struct simulator_data* simul)
+{
+	ca_cnt_push(&(simul->core.fq->ca));
+	--(simul->core.info.fq.blank);
+	--(simul->core.info.fq.remain);
+}
+
+void fq_pop(struct simulator_data* simul)
+{
+	ca_cnt_pop(&(simul->core.fq->ca));
+	++(simul->core.info.fq.blank);
 }
 
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain)
@@ -428,19 +478,31 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 
 		if (fq_ele->opcode == IntAlu || simul->core.info.lsq.remain > 0)
 		{//int alu가 아니라면, lsq에 여유가 있는지를 검사한다.
-		// Count Instruction number
+
+		 // Element has been poped from Fetch Queue
+			fq_pop(simul);
+
+		 // Count Instruction number
 			switch (fq_ele->opcode)
 			{
 			case 0:
-				info->cnt_IntAlu++;
+				++(simul->info.cnt_IntAlu);
 				break;
 			case 1:
-				info->cnt_MemRead++;
+				++(simul->info.cnt_MemRead);
 				break;
 			case 2:
-				info->cnt_MemWrite++;
+				++(simul->info.cnt_MemWrite);
 				break;
 			}
+			
+			//init;
+			struct RAT_ARR* rat = simul->core.rat;
+			struct ROB_ARR* rob = simul->core.rob;
+			struct RS_ARR* rs = simul->core.rs;
+			struct FQ_ARR* fq = simul->core.fq;
+			struct LSQ_ARR*lsq = simul->core.lsq;
+
 			// Putting first element of Fetch Queue to Reservation Station	
 			(*rs_ele).is_valid = true;
 			(*rs_ele).opcode = fq_ele->opcode;
@@ -460,6 +522,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			if (oprd_2 == 0 || rat->rat[oprd_2].RF_valid)
 			{
 				(*rs_ele).oprd_2.state = V;
+				(*rs_ele).oprd_2.data.v = oprd_2;
 			}
 			else
 			{
@@ -476,8 +539,14 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				break;
 			case 1:
 			case 2:
-				lsq->rob[lsq->ll.tail].opcode = fq_ele->opcode;
-				rob->rob[rob->ll.tail].rs_dest = rs_idx;
+				lsq->lsq[lsq->ll.tail].opcode = fq_ele->opcode;
+				lsq->lsq[lsq->ll.tail].address = -1;
+				lsq->lsq[lsq->ll.tail].rob_dest = rob->ll.tail;
+				lsq->lsq[lsq->ll.tail].rs_dest = rs_idx;
+				lsq->lsq[lsq->ll.tail].time = -1;
+				rs_ele->lsq_dest = lsq->ll.tail;
+				lsq_push(simul);
+
 				break;
 			}
 
@@ -488,6 +557,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].status = P;
 			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
 			(*rs_ele).rob_dest = rob->ll.tail;
+			rob_push(simul);
 
 			// Modify RAT status
 			if (fq_ele->dest != 0)
@@ -496,10 +566,8 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				rat->rat[fq_ele->dest].Q = rob->ll.tail;   // So leave reference to ROB entry in RAT
 			}
 
-			ll_cnt_push(&(rob->ll)); // Element has been pushed to ROB
-			ca_cnt_pop(&(fetch_queue->ca));   // Element has been poped from Fetch Queue
 
-			decoded++;
+			--(*decoded_remain);
 		}
 	}
 }
@@ -527,7 +595,7 @@ void decode_and_value_payback(struct simulator_data* simul)
 	struct ROB_ARR* rob = simul->core.rob;
 
 	//struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info
-	int decoded = 0;
+	int decoded = simul->core.info.rob.width;
 	// For every entries in Reservation Station,
 	for (int i = 0; i < rs->size; i++)
 	{
@@ -539,7 +607,7 @@ void decode_and_value_payback(struct simulator_data* simul)
 		{
 			if (false== rs->rs[i].is_completed_this_cycle)//if not this entry flushed this cycle,
 			{
-				decode( (rs->rs)+i, i, simul);// Try to decode instruction into empty place
+				decode( (rs->rs)+i, i, simul, &decoded);// Try to decode instruction into empty place
 			}
 			else
 			{
