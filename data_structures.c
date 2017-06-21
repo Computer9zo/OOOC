@@ -332,7 +332,7 @@ void REPORT_reporter(const struct REPORT* printed)
 		printf("%s%-8d%d\n", "Inst T", i + 1, (printed->Inst_per_thread)[i]);
 	}
 }
-void RS_arr_reporter(const struct RS_ARR *rs, struct ROB_ARR *rob)
+void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob)
 {
 	const struct RS *rs_idx = NULL;
 	int idx;

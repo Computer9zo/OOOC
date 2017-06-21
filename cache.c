@@ -239,7 +239,7 @@ void *cache_initializer(struct cache_config *config)
 	struct cons_cache *cache = calloc((3 * way_numbers * set_numbers), sizeof(int));
 	
 	// Initializing statistics *stat
-	struct statistics *stat;
+	struct statistics *stat = malloc(sizeof(struct statistics));
 	(*stat).Read_accesses = 0;
 	(*stat).Write_accesses = 0;
 	(*stat).Read_misses = 0;
