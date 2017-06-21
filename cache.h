@@ -80,6 +80,8 @@ struct cons_cache_controller
 	void (*update_LRU)(struct cons_cache_controller *self, int index, int target_way);
 	int (*find_victim)(struct cons_cache_controller *self, int index);
 	void (*cache_fill)(struct cons_cache_controller *self, struct cons_cache *cache, struct statistics *stat, int addr);
+	void (*cache_read)(struct cons_cache_controller *self, struct cons_cache *cache, int addr);
+	void (*cache_write)(struct cons_cache_controller *self, struct cons_cache *cache, int addr);
 	int (*search)(struct cons_cache_controller *self, struct cons_cache *cache, int addr);
 	bool (*read_try)(struct cons_cache_controller *self, struct cons_cache *cache, struct statistics *stat, int addr);
 	bool (*write_try)(struct cons_cache_controller *self, struct cons_cache *cache, struct statistics *stat, int addr);
@@ -124,3 +126,7 @@ void *cache_initializer(struct cache_config *config);
 bool cache_query(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int access_type, int addr);
 
 void cache_filler(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int addr);
+
+void cache_reader(struct cons_cache_controller *cache_cont, struct cons_cache *cache, int addr);
+
+void cache_writer(struct cons_cache_controller *cache_cont, struct cons_cache *cache, int addr);

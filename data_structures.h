@@ -218,12 +218,16 @@ struct ROB_ARR
 	struct LL_status ll;
 };
 
+enum miss_type { HIT = 1, MISS = 0, FORWARD = -1 };
+
 struct LSQ// Load Store queue
 {
 	enum instruction opcode; // operation
 	int time; //
 	int rob_dest; // status = P; means pending, status = C; means completed
 	int address;//where it from
+	enum miss_type was_hit;
+	enum is_complete status;
 };
 
 struct LSQ_ARR// Load Store queue

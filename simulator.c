@@ -633,7 +633,7 @@ void issue(struct RS *rs_ele, int* issue_remain)
 }
 
 // TODO: LSQ 관련 함수들 만들었당께
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
+void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
 {
 	int width;
 	width = (*simul).core.info.issue.width;
@@ -689,6 +689,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
+					(*lsq_arr[i].lsq).was_hit = HIT;
 					read_port--;
 					i++;
 				}
@@ -703,6 +704,8 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
+					(*lsq_arr[i].lsq).was_hit = HIT;
+					(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
 					write_port--;
 					i++;
 				}
@@ -739,16 +742,19 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 					if (is_hit)
 					{
 						(*lsq_arr[i].lsq).time = 2;
+						(*lsq_arr[i].lsq).was_hit = HIT;
 					}
 					else
 					{
 						(*lsq_arr[i].lsq).time = 52;
+						(*lsq_arr[i].lsq).was_hit = MISS;
 						int j;
 						for (j = 0; j <= stores.num; j++)
 						{
 							if ((*lsq_arr[i].lsq).address == stores.address[j])
 							{
 								(*lsq_arr[i].lsq).time = 2;
+								(*lsq_arr[i].lsq).was_hit = FORWARD;
 								break;
 							}
 						}
@@ -770,11 +776,15 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 					if (is_hit)
 					{
 						(*lsq_arr[i].lsq).time = 2;
+						(*lsq_arr[i].lsq).was_hit = HIT;
 					}
 					else
 					{
 						(*lsq_arr[i].lsq).time = 52;
+						(*lsq_arr[i].lsq).was_hit = MISS;
 					}
+
+					(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
 
 					store.addresses[num] = (*lsq_arr[i].lsq).address;
 					store.num++;
@@ -799,7 +809,42 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 	}	
 }
 
-void lsq_exe_and_retire()
+void lsq_exe(struct simualator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+{
+	// If time == 0, change the status of corresponding entry in ROB to C
+	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
+	struct cons_cache *cache = (*simul).cache.cache;
+	struct statistics *stat = (*simul).cache.stat;
+
+	int i;
+	int lsq_occupied = lsq_arr[0].ll.occupied;
+
+	struct order_stores stores;
+	stores.num = 0;
+
+	for (i = 0; i < lsq_occupied; i++)
+	{	
+		if ((*lsq_arr[i].lsq).time == 0) // Cache access completed
+		{
+			if ((*lsq_arr[i].lsq).opcode == MemRead) // MemRead case
+			{
+				if ((*lsq_arr[i].lsq).was_hit == HIT)
+				{
+					cache_reader(cache_cont, cache, (*lsq_arr[i].lsq).address);
+				}
+				else if ((*lsq_arr[i].lsq).was_hit == MISS)
+				{
+					cache_filler(cache_cont, cache, (*lsq_arr[i].lsq).address);
+					cache_reader(cache_cont, cache, (*lsq_arr[i].lsq).address);
+				}
+			}
+		}
+			}
+		}
+			
+	}
+
+}
 
 void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
 {

@@ -45,6 +45,31 @@ int find_victim(struct cons_cache_controller *self, int index)
 	return victim;
 }
 
+void cache_write(struct cons_cache_controller *self, struct cons_cache *cache, int addr)
+{
+	int tag_and_index[2];
+	get_tag_and_index(self, tag_and_index, addr);
+	int tag = tag_and_index[0];
+	int index = tag_and_index[1];
+
+	int target_way = (*self).find_victim(self, index);
+	(*cache).data[index][target_way][0] = tag;  // Writing tag
+	(*cache).data[index][target_way][1] = 1;    // Now this block is dirty 
+	(*self).update_LRU(self, index, target_way);
+}
+
+void cache_read(struct cons_cache_controller *self, struct cons_cache *cache, int addr)
+{
+	int tag_and_index[2];
+	get_tag_and_index(self, tag_and_index, addr);
+	int tag = tag_and_index[0];
+	int index = tag_and_index[1];
+
+	int target_way = (*self).search(self, cache, addr);
+       	(*self).update_LRU(self, index, target_way);	
+}
+
+
 void cache_fill(struct cons_cache_controller *self, struct cons_cache *cache, struct statistics *stat, int addr)
 {
 	int tag_and_index[2];
@@ -112,7 +137,7 @@ bool read_try(struct cons_cache_controller *self, struct cons_cache *cache, stru
 	}
 	else
 	{
-		(*self).update_LRU(self, index, target_way);
+		// (*self).update_LRU(self, index, target_way);
 		return true;
 	}		
 }
@@ -134,9 +159,9 @@ bool write_try(struct cons_cache_controller *self, struct cons_cache *cache, str
 	}
 	else
 	{
-		(*cache).data[index][target_way][0] = tag;  // Save tag
-		(*cache).data[index][target_way][1] = 1;    // Dirty bit set
-		(*self).update_LRU(self, index, target_way);
+		//(*cache).data[index][target_way][0] = tag;  // Save tag
+		//(*cache).data[index][target_way][1] = 1;    // Dirty bit set
+		//(*self).update_LRU(self, index, target_way);
 		return true;
 	}
 }
@@ -164,6 +189,16 @@ bool cache_query(struct cons_cache_controller *cache_cont, struct cons_cache *ca
 void cache_filler(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int addr)
 {
 	(*cache_cont).cache_fill(cache_cont, cache, stat, addr);
+}
+
+void cache_reader(struct cons_cache_controller *cache_cont, struct cons_cache *cache,  int addr)
+{
+	(*cache_cont).cache_read(cache_cont, cache, addr);
+}
+
+void cache_writer(struct cons_cache_controller *cache_cont, struct cons_cache *cache, int addr)
+{
+	(*cache_cont).cache_write(cache_cont, cache, addr);
 }
 
 void *cache_initializer(struct cache_config *config)
@@ -195,6 +230,8 @@ void *cache_initializer(struct cache_config *config)
 	(*cache_cont).update_LRU = update_LRU;
 	(*cache_cont).find_victim = find_victim;
 	(*cache_cont).cache_fill = cache_fill;
+	(*cache_cont).cache_read = cache_read;
+	(*cache_cont).cache_write = cache_write;
 	(*cache_cont).search = search;
 	(*cache_cont).read_try = read_try;
 	(*cache_cont).write_try = write_try;
