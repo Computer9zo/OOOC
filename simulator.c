@@ -418,87 +418,89 @@ void fetch(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct THREAD *ins
 	}
 }
 
-void decode(struct CONFIG *config, struct FQ_ARR *fetch_queue, struct RS *rs_ele, int rs_idx, struct RAT_ARR *rat, struct ROB_ARR *rob, struct ROB_ARR *lsq, int* decoded, struct SIMUL_INFO *info)
+void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain)
 {
-	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) ROB has empty place
-	if (fetch_queue->ca.occupied > 0 && *decoded < (*config).Width && *decoded < info->ROB_blank)
+	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) rob h
+	if (simul->core.fq->ca.occupied > 0 && *decoded_remain > 0 && simul->core.info.rob.remain>0)
 	{
-
 		struct FQ * fq_ele;
-		fq_ele = (fetch_queue->fq) + (fetch_queue->ca.head); //디코드해올 fq의 inst
+		fq_ele = (simul->core.fq->fq) + (simul->core.fq->ca.head); //디코드해올 fq의 inst
 
+		if (fq_ele->opcode == IntAlu || simul->core.info.lsq.remain > 0)
+		{//int alu가 아니라면, lsq에 여유가 있는지를 검사한다.
 		// Count Instruction number
-		switch (fq_ele->opcode)
-		{
-		case 0:
-			info->cnt_IntAlu++;
-			break;
-		case 1:
-			info->cnt_MemRead++;
-			break;
-		case 2:
-			info->cnt_MemWrite++;
-			break;
-		}
-		// Putting first element of Fetch Queue to Reservation Station	
-		(*rs_ele).is_valid = true;
-		(*rs_ele).opcode = fq_ele->opcode;
+			switch (fq_ele->opcode)
+			{
+			case 0:
+				info->cnt_IntAlu++;
+				break;
+			case 1:
+				info->cnt_MemRead++;
+				break;
+			case 2:
+				info->cnt_MemWrite++;
+				break;
+			}
+			// Putting first element of Fetch Queue to Reservation Station	
+			(*rs_ele).is_valid = true;
+			(*rs_ele).opcode = fq_ele->opcode;
 
-		int oprd_1 = fq_ele->oprd_1;
-		int oprd_2 = fq_ele->oprd_2;
-		if (oprd_1 == 0 || rat->rat[oprd_1].RF_valid)
-		{
-			(*rs_ele).oprd_1.state = V;
-		}
-		else
-		{
-			(*rs_ele).oprd_1.state = Q;
-			(*rs_ele).oprd_1.data.q = rat->rat[oprd_1].Q;
-		}
+			int oprd_1 = fq_ele->oprd_1;
+			int oprd_2 = fq_ele->oprd_2;
+			if (oprd_1 == 0 || rat->rat[oprd_1].RF_valid)
+			{
+				(*rs_ele).oprd_1.state = V;
+			}
+			else
+			{
+				(*rs_ele).oprd_1.state = Q;
+				(*rs_ele).oprd_1.data.q = rat->rat[oprd_1].Q;
+			}
 
-		if (oprd_2 == 0 || rat->rat[oprd_2].RF_valid)
-		{
-			(*rs_ele).oprd_2.state = V;
-		}
-		else
-		{
-			(*rs_ele).oprd_2.state = Q;
-			(*rs_ele).oprd_2.data.q = rat->rat[oprd_2].Q;
-		}
+			if (oprd_2 == 0 || rat->rat[oprd_2].RF_valid)
+			{
+				(*rs_ele).oprd_2.state = V;
+			}
+			else
+			{
+				(*rs_ele).oprd_2.state = Q;
+				(*rs_ele).oprd_2.data.q = rat->rat[oprd_2].Q;
+			}
 
-		(*rs_ele).time_left = -1; // Waiting to be issued
-		
-		// Putting first element of Fetch Queue to LSQ
-		switch (fq_ele->opcode)
-		{
-		case 0:
-			break;
-		case 1:
-		case 2:
-			lsq->rob[lsq->ll.tail].opcode = fq_ele->opcode;
+			(*rs_ele).time_left = -1; // Waiting to be issued
+
+			// Putting first element of Fetch Queue to LSQ
+			switch (fq_ele->opcode)
+			{
+			case 0:
+				break;
+			case 1:
+			case 2:
+				lsq->rob[lsq->ll.tail].opcode = fq_ele->opcode;
+				rob->rob[rob->ll.tail].rs_dest = rs_idx;
+				break;
+			}
+
+			// Putting first element of Fetch Queue to ROB
+			rob->rob[rob->ll.tail].opcode = fq_ele->opcode;
+			rob->rob[rob->ll.tail].dest = fq_ele->dest;
 			rob->rob[rob->ll.tail].rs_dest = rs_idx;
-			break;
+			rob->rob[rob->ll.tail].status = P;
+			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
+			(*rs_ele).rob_dest = rob->ll.tail;
+
+			// Modify RAT status
+			if (fq_ele->dest != 0)
+			{
+				rat->rat[fq_ele->dest].RF_valid = false;		// Now data isn't inside the Arch Register file anymore
+				rat->rat[fq_ele->dest].Q = rob->ll.tail;   // So leave reference to ROB entry in RAT
+			}
+
+			ll_cnt_push(&(rob->ll)); // Element has been pushed to ROB
+			ca_cnt_pop(&(fetch_queue->ca));   // Element has been poped from Fetch Queue
+
+			decoded++;
 		}
-
-		// Putting first element of Fetch Queue to ROB
-		rob->rob[rob->ll.tail].opcode = fq_ele->opcode;
-		rob->rob[rob->ll.tail].dest = fq_ele->dest;
-		rob->rob[rob->ll.tail].rs_dest = rs_idx;
-		rob->rob[rob->ll.tail].status = P;
-		rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
-		(*rs_ele).rob_dest = rob->ll.tail;
-
-		// Modify RAT status
-		if (fq_ele->dest != 0)
-		{
-			rat->rat[fq_ele->dest].RF_valid = false;		// Now data isn't inside the Arch Register file anymore
-			rat->rat[fq_ele->dest].Q = rob->ll.tail;   // So leave reference to ROB entry in RAT
-		}
-
-		ll_cnt_push(&(rob->ll)); // Element has been pushed to ROB
-		ca_cnt_pop(&(fetch_queue->ca));   // Element has been poped from Fetch Queue
-
-		decoded++;
 	}
 }
 
@@ -537,7 +539,7 @@ void decode_and_value_payback(struct simulator_data* simul)
 		{
 			if (false== rs->rs[i].is_completed_this_cycle)//if not this entry flushed this cycle,
 			{
-				decode(config, fetch_queue, (rs->rs)+i, i, rat, rob, lsq, &decoded, info);// Try to decode instruction into empty place
+				decode( (rs->rs)+i, i, simul);// Try to decode instruction into empty place
 			}
 			else
 			{
