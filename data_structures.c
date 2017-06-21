@@ -1,5 +1,6 @@
 #define DUMP_WIDTH 4  //어레이 형태로 레지스터 출력시 가로 줄 개수
 
+#include <stdlib.h>
 #include <stdio.h>
 #include "data_structures.h"
 
