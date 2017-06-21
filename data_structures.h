@@ -64,11 +64,11 @@ void LSQ_arr_printer(const struct LSQ_ARR *lsq);
 //for reporting
 void RS_reporter(const struct RS* printed, struct LL_status* rob_status);
 void ROB_reporter(const struct ROB* printed);
-void LSQ_reporter(const struct LSQ* printed);
+void LSQ_reporter(const struct LSQ* printed, struct LL_status* rob_status);
 void REPORT_reporter(const struct REPORT* printed);
 void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob);
 void ROB_arr_reporter(const struct ROB_ARR *rob);
-void LSQ_arr_reporter(const struct LSQ_ARR *lsq);
+void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob);
 
 void REPORT_fprinter(const struct REPORT* printed, FILE* fileID);
 

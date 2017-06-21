@@ -310,7 +310,14 @@ void LSQ_reporter(const struct LSQ* printed, struct LL_status* rob_status)
 {
 	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
 	printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
-	printf("-8%X", (printed->status == C) ? 'C' : 'P');
+	if (printed->address < 0) 
+	{
+		printf("%9X", 0);
+	}
+	else
+	{
+		printf("%9X", printed->address);
+	}
 }
 void REPORT_reporter(const struct REPORT* printed)
 {
@@ -336,7 +343,28 @@ void RS_arr_reporter(const struct RS_ARR *rs, struct ROB_ARR *rob)
 		printf("\n");
 	}
 }
-void ROB_arr_reporter(const struct ROB_ARR *rob)
+
+void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
+{
+	const struct LSQ *lsq_idx = NULL;
+	int idx;
+	int ptr = rob->ll.head;
+	for (idx = 0; idx < lsq->ll.size; ++idx)
+	{
+		printf("LSQ%-4d: ", idx + 1);
+		
+		if (idx < lsq->ll.occupied)
+		{
+			lsq_idx = (lsq->lsq) + (ptr);
+			ptr = lsq->ll.next[ptr];
+			LSQ_reporter(lsq_idx,&rob->ll);
+		}
+		printf("\n");
+
+	}
+}
+
+void ROB_arr_reporter(const struct ROB_ARR *lsq);
 {
 	const struct ROB *rob_idx = NULL;
 	int idx;
@@ -344,7 +372,7 @@ void ROB_arr_reporter(const struct ROB_ARR *rob)
 	for (idx = 0; idx < rob->ll.size; ++idx)
 	{
 		printf("ROB%-4d: ", idx + 1);
-		
+
 		if (idx < rob->ll.occupied)
 		{
 			rob_idx = (rob->rob) + (ptr);

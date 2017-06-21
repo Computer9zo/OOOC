@@ -926,17 +926,20 @@ void disp_debug(struct simulator_data* simul, int debug)
 		break;
 	case 3://lsq print
 		printf("= Cycle %-5d\n", simul->info.cycle);
-
+		LSQ_arr_reporter(simul->core.lsq, simul->core.rob);
 		break;
 	case 4:// rs lsq, rob print
 		printf("= Cycle %-5d\n", simul->info.cycle);
-
+		RS_arr_reporter(simul->core.rs, simul->core.rob);
+		LSQ_arr_reporter(simul->core.lsq, simul->core.rob);
+		ROB_arr_reporter(simul->core.rob);
 		break;
 	default://debug mode
 		printf("= Cycle %-5d\n", simul->info.cycle);
 		FQ_arr_printer(simul->core.fq);
 		RAT_arr_printer(simul->core.rat);
 		RS_arr_printer(simul->core.rs, simul->core.rob);
+		LSQ_arr_printer(simul->core.lsq, simul->core.rob);
 		ROB_arr_printer(simul->core.rob);
 		wait();
 		break;
