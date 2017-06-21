@@ -65,15 +65,12 @@ void commit(struct simulator_data* simul);
 void ex_and_issue(struct simulator_data* simulator);
 void decode_and_value_payback(struct simulator_data* simul);
 void fetch(struct THREAD *inst, struct simulator_data* simul);
-
-
-
 void issue(struct RS *rs_ele, int* issue_remain);
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
-
+void disp_debug(struct simulator_data* simul);
 
 void lsq_push(struct simulator_data* simul);
 void lsq_pop(struct simulator_data* simul, int pop_idx);
@@ -81,6 +78,7 @@ void rob_push(struct simulator_data* simul);
 void rob_pop(struct simulator_data* simul, int pop_idx);
 void fq_push(struct simulator_data* simul);
 void fq_pop(struct simulator_data* simul);
+
 
 
 void wait(void);
@@ -117,55 +115,19 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
+		
+		lsq_ex_and_retire(&simul_data);
 		//issue();
 
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
-		decode_and_value_payback(config, &rob, &lsq, &rs,&fq,&rat,&info);
-
+		decode_and_value_payback(&simul_data);
 		// Fetch instructions
 		fetch(threads,&simul_data);
 
 		// Dump
-		int total_len = 0;
-		int total_pc = 0;
-		switch ((*config).Dump)
-		{
-		case 0://display current percentage to do;
-			for (i = 0; i<info.num_of_inst; ++i){
-				total_len += threads[i].length;
-				total_pc += threads[i].pc;
-			}
-			if (info.cycle % 1000 == 0) {
-				if (info.cycle == 1) {
-					printf("Simulating =");
-				}
-				printf("%3d%%\b\b\b\b", total_pc *100 / total_len);
-			}
-			break;
-		case 1://rob print
-			printf("= Cycle %-5d\n", info.cycle);
-			ROB_arr_reporter(&rob);
-			break;
-		case 2://rob and rs print
-			printf("= Cycle %-5d\n", info.cycle);
-			RS_arr_reporter(&rs, &rob);
-			ROB_arr_reporter(&rob);
-			break;
-		default://debug mode
-			printf("= Cycle %-5d\n", info.cycle);
-			FQ_arr_printer(&fq);
-			RAT_arr_printer(&rat);
-			RS_arr_printer(&rs,&rob);
-			ROB_arr_printer(&rob);
-			wait();
-			break;
-		}
-
-		for (i = 0; i < num_of_inst; i++) {
-			//pc가 끝에 도달하지 않았거나 ROB가 아직 남아있으면,
-			still_run |= (threads[i].length != threads[i].pc) || (rob.ll.tail == rob.ll.head);
-		}
+		disp_debug((*config).Dump)
+		
 	}
 
 	// Simulation finished
@@ -483,6 +445,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			fq_pop(simul);
 
 		 // Count Instruction number
+			++(simul->info.cnt_Insts);
 			switch (fq_ele->opcode)
 			{
 			case 0:
@@ -632,19 +595,25 @@ void issue(struct RS *rs_ele, int* issue_remain)
 	}
 }
 
-void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
+void lsq_address_feed(struct simulator_data* simul, int idx_of_lsq)
 {
-	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
-	// --(simul->core.info.write.remain) 이 된다.
-	//miss이면 lsq 가 time 50근처로 설정되고,
-	// --(simul->core.info.write.remain) 이 된다.
+	struct LSQ* lsq_ele = &(simul->core.lsq)->lsq[idx_of_lsq];
+	struct RS*  rs_ele =  &(simul->core.rs->rs[lsq_ele->rs_dest]);
+	if (lsq_ele->address == -1)
+	{//if it not ready,
+		lsq_ele->address = rs_ele->oprd_2.data.v;
+
+	}
 }
 void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 {
-	//hit miss 검사해서, hit이면 lsq 가 이번 사이클에 바로 빠지고
-	// --(simul->core.info.write.remain) 이 된다.
-	//miss이면 lsq 가 time 50근처로 설정되고,
-	// --(simul->core.info.write.remain) 이 된다.
+	struct LSQ* lsq_ele = &(simul->core.lsq)->lsq[idx_of_lsq];
+	struct RS*  rs_ele = &(simul->core.rs->rs[lsq_ele->rs_dest]);
+	if (lsq_ele->address == -1)
+	{//if it not ready,
+		lsq_ele->address = rs_ele->oprd_2.data.v;
+
+	}
 }
 
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul)
@@ -780,4 +749,42 @@ void wait(void)
 {
 	printf("\nPress any key to continue :\n");
 	getchar();
+}
+
+void disp_debug(simul)
+{
+	int total_len = 0;
+int total_pc = 0;
+switch ()
+{
+case 0://display current percentage to do;
+	for (i = 0; i<info.num_of_inst; ++i) {
+		total_len += threads[i].length;
+		total_pc += threads[i].pc;
+	}
+	if (info.cycle % 1000 == 0) {
+		if (info.cycle == 1) {
+			printf("Simulating =");
+		}
+		printf("%3d%%\b\b\b\b", total_pc * 100 / total_len);
+	}
+	break;
+case 1://rob print
+	printf("= Cycle %-5d\n", info.cycle);
+	ROB_arr_reporter(&rob);
+	break;
+case 2://rob and rs print
+	printf("= Cycle %-5d\n", info.cycle);
+	RS_arr_reporter(&rs, &rob);
+	ROB_arr_reporter(&rob);
+	break;
+default://debug mode
+	printf("= Cycle %-5d\n", info.cycle);
+	FQ_arr_printer(&fq);
+	RAT_arr_printer(&rat);
+	RS_arr_printer(&rs, &rob);
+	ROB_arr_printer(&rob);
+	wait();
+	break;
+}
 }
