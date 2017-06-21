@@ -677,7 +677,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 	
 	if (is_perfect_cache)
 	{
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			op = (*lsq_arr[i].lsq).opcode;
 			addr = (*lsq_arr[i].lsq).address;
@@ -685,21 +685,21 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 			
 			if (op == MemRead) // MemRead case
 			{
-				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses and never been issued before
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
 					read_port--;
 					i++;
 				}
-				else // No address yet or there are dangerous stores
+				else // No address yet or there are dangerous stores or been issued already
 				{
 					i++;
 				}
 			}
 			else // MemWrite case
 			{
-				if (addr != -1) // Address has been calculated
+				if (time == -1 && addr != -1) // Address has been calculated and never been issued before 
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					(*lsq_arr[i].lsq).time = 2;
@@ -725,7 +725,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 		struct order_stores stores;
 		stores.num = 0;
 
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			op = (*lsq_arr[i].lsq).opcode;
 			addr = (*lsq_arr[i].lsq).address;
@@ -733,7 +733,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 
 			if (op == MemRead) // MemRead case
 			{
-				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses and never been issued before 
 				{
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
@@ -757,14 +757,14 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 					read_port--;
 					i++;
 				}
-				else // No address yet or there are dangerous stores
+				else // No address yet or there are dangerous stores or already issued before
 				{
 					i++;
 				}
 			}
 			else // MemWrite case
 			{
-				if (time == -1 && addr != -1) // Address has been calculated
+				if (time == -1 && addr != -1) // Address has been calculated and never been issued before ( time == -1 )
 				{
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
