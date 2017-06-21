@@ -9,7 +9,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 
 struct simulator_data
 {
-	struct cons_core
+	struct con_core
 	{
 		//core
 		struct FQ_ARR* fq;//패치큐
@@ -25,7 +25,7 @@ struct simulator_data
 			int current_fetch_inst;
 		} info;
 	} core;
-	struct cons_cache
+	struct con_cache
 	{
 		struct cons_cache_controller *cont;
 		struct cons_cache *cache;
@@ -57,6 +57,34 @@ struct cons_remaining
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
 
+void simul_free(struct simulator_data* out_simulator) 
+{
+	
+	FQ_delete(*out_simulator->core.fq);
+	RS_delete(*out_simulator->core.rs);
+	ROB_delete(*out_simulator->core.rob);
+	LSQ_delete(*out_simulator->core.lsq);
+	for (int i = 0; i < out_simulator->info.num_of_inst; ++i) {
+		RAT_delete(out_simulator->core.rat[i]);
+	}
+	free(out_simulator->core.rat);
+}
+
+void write_report(struct simulator_data* out_simulator, struct REPORT* out_report)
+{
+	out_report->Cycles = out_simulator->info.cycle;
+	out_report->Total_Insts += out_simulator->info.Total_Insts;
+	out_report->Inst_per_thread = (int*)calloc(out_simulator->info.num_of_inst, sizeof(int));
+	for (int i = 0; i <  out_simulator->info.num_of_inst; ++i) {
+		
+		out_report->Inst_per_thread[i] = out_simulator->info.Inst_per_thread[i];
+	}
+	out_report->IntAlu = out_simulator->info.cnt_IntAlu;
+	out_report->MemRead = out_simulator->info.cnt_MemRead;
+	out_report->MemWrite = out_simulator->info.cnt_MemWrite;
+	out_report->IPC = ((double)(out_report->Total_Insts) / (double)out_report->Cycles);
+}
+
 bool is_work_left(struct THREAD* threads, struct simulator_data* simulator);
 
 void remains_update(struct simulator_data* simulator);
@@ -71,6 +99,7 @@ void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
 void disp_debug(struct simulator_data* simul);
+
 
 void lsq_push(struct simulator_data* simul);
 void lsq_pop(struct simulator_data* simul, int pop_idx);
@@ -126,34 +155,17 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		fetch(threads,&simul_data);
 
 		// Dump
-		disp_debug((*config).Dump)
+		disp_debug((*config).Dump);
 		
 	}
 
 	// Simulation finished
 	
 	//free array
-	FQ_delete(fq);
-	RS_delete(rs);
-	ROB_delete(rob);
-	LSQ_delete(lsq);
-	for (i = 0; i < info.num_of_inst; ++i) {
-		RAT_delete(rat[i]);
-	}
-	free(rat);
+	simul_free(&simul_data);
 
 	// Write a report
-	out_report->Cycles = info.cycle;
-	out_report->Total_Insts = 0;//inst_length;
-	out_report->Inst_per_thread = (int*)calloc(info.num_of_inst, sizeof(int));
-	for (i = 0; i<info.num_of_inst; ++i) {
-		out_report->Total_Insts += threads[i].length;
-		out_report->Inst_per_thread[i] = threads[i].length;
-	}
-	out_report->IntAlu = info.cnt_IntAlu;
-	out_report->MemRead = info.cnt_MemRead;
-	out_report->MemWrite = info.cnt_MemWrite;
-	out_report->IPC = ((double)(out_report->Total_Insts) / (double)info.cycle);
+	write_report(&simul_data, out_report);
 
 	if (config->Dump == 0) {printf("100%%");}
 
@@ -505,7 +517,6 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				lsq->lsq[lsq->ll.tail].opcode = fq_ele->opcode;
 				lsq->lsq[lsq->ll.tail].address = -1;
 				lsq->lsq[lsq->ll.tail].rob_dest = rob->ll.tail;
-				lsq->lsq[lsq->ll.tail].rs_dest = rs_idx;
 				lsq->lsq[lsq->ll.tail].time = -1;
 				rs_ele->lsq_dest = lsq->ll.tail;
 				lsq_push(simul);
@@ -598,39 +609,22 @@ void issue(struct RS *rs_ele, int* issue_remain)
 // TODO: LSQ 관련 함수들 만들었당께
 void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 {
-	int width;
-	width = (*simul).core.info.issue.width;
-
-	int read_port;
-	int write_port;
+	
+	int read_port = simul->core.info.load.width;
+	int write_port = simul->core.info.write.width;
 
 	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
 	struct cons_cache *cache = (*simul).cache.cache;
 	struct statistics *stat = (*simul).cache.stat;
 	bool is_perfect_cache = (*simul).cache.is_perfect_cache;
 
-	if (width == 1)
-	{
-		read_port = 1;
-		write_port = 1;
-	}
-	else if (width > 1 && width <= 4)
-	{
-		read_port = 2;
-		write_port = 1;
-	}
-	else
-	{
-		read_port = 3;
-		write_port = 2;
-	}
-
 	// LSQ_ARR를 돌면서 issue를 한다
 	// Time count를 -1에서 초기화시킴.
 	int i = 0;
 	int addr;
 	int op;
-	
+	int time;
+
 	bool are_there_dangerous_stores = false;
 	struct order_stores
 	{
@@ -929,40 +923,34 @@ void wait(void)
 	getchar();
 }
 
-void disp_debug(simul)
+void disp_debug(struct simulator_data* simul, int debug)
 {
-	int total_len = 0;
-int total_pc = 0;
-switch ()
-{
-case 0://display current percentage to do;
-	for (i = 0; i<info.num_of_inst; ++i) {
-		total_len += threads[i].length;
-		total_pc += threads[i].pc;
-	}
-	if (info.cycle % 1000 == 0) {
-		if (info.cycle == 1) {
-			printf("Simulating =");
+	switch (debug)
+	{
+	case 0://display current percentage to do;
+		if (simul->info.cycle % 1000 == 1) {
+			if (simul->info.cycle == 1) {
+				printf("Simulating =");
+			}
+			printf("%3d%%\b\b\b\b", simul->info.cnt_Insts * 100 / simul->info.Total_Insts);
 		}
-		printf("%3d%%\b\b\b\b", total_pc * 100 / total_len);
+		break;
+	case 1://rob print
+		printf("= Cycle %-5d\n", simul->info.cycle);
+		ROB_arr_reporter(&rob);
+		break;
+	case 2://rob and rs print
+		printf("= Cycle %-5d\n", info.cycle);
+		RS_arr_reporter(&rs, &rob);
+		ROB_arr_reporter(&rob);
+		break;
+	default://debug mode
+		printf("= Cycle %-5d\n", info.cycle);
+		FQ_arr_printer(&fq);
+		RAT_arr_printer(&rat);
+		RS_arr_printer(&rs, &rob);
+		ROB_arr_printer(&rob);
+		wait();
+		break;
 	}
-	break;
-case 1://rob print
-	printf("= Cycle %-5d\n", info.cycle);
-	ROB_arr_reporter(&rob);
-	break;
-case 2://rob and rs print
-	printf("= Cycle %-5d\n", info.cycle);
-	RS_arr_reporter(&rs, &rob);
-	ROB_arr_reporter(&rob);
-	break;
-default://debug mode
-	printf("= Cycle %-5d\n", info.cycle);
-	FQ_arr_printer(&fq);
-	RAT_arr_printer(&rat);
-	RS_arr_printer(&rs, &rob);
-	ROB_arr_printer(&rob);
-	wait();
-	break;
-}
 }
