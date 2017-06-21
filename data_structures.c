@@ -138,6 +138,7 @@ void RAT_printer(const struct RAT* printed)
 		printf("%5d", printed->Q+1);
 }
 
+//TODO: Fix RS_printer, LSQ_printer, RS_reporter, LSQ_reporter. And ll_next_pos, ll_get_cidx has different declaration from header 
 void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 {
 	if (printed->is_valid)
