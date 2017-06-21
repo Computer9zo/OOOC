@@ -44,8 +44,7 @@
  * 캐시 미스시 캐시 컨트롤러가 핸들링 하는 부분을 없앴다.
  * 캐시 미스가 나면, Reservation station에 카운트가 50카운트가 되고
  * 미스가 났던 인스트럭션이 Reservation station에서 타임 카운트가 다 되면
- * 이 cache_filler 함수를 호출해야 한다.
- * 이 함수는 메인 메모리에 있는 데이터 블락을 캐시에 써 놓는 역활을 한다.
+ * 이 cache_filler / cache_reader / cache_writer 함수를 호출해야 한다.
  * clock update 관련 사항을 캐시 모듈로 끌어들이기 복잡하니 이 함수를 따로 떼었다.
  *
  *
@@ -96,12 +95,11 @@ struct cons_cache_controller
 	int tag_filter_bits;
 	int index_filter_bits;
 
-	// LRU list for True LRU
-	// int LRU[0]; // For struct hat
+	// LRU list for True LRU. For struct hack
 	int **LRU;
 };
 
-struct dummy // For struct hat of cons_cache_controller
+struct dummy // For struct hack of cons_cache_controller
 {
 	// Methods for cache_controller
 	void (*update_LRU)(struct cons_cache_controller *self, int index, int target_way);
@@ -122,6 +120,8 @@ struct dummy // For struct hat of cons_cache_controller
 	int index_filter_bits;
 };
 
+
+// Public methods for other modules
 void *cache_initializer(struct cache_config *config);
 
 bool cache_query(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int access_type, int addr);

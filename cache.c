@@ -214,6 +214,8 @@ void *cache_initializer(struct cache_config *config)
 	(*cache_cont).block_size = block_size;
 	(*cache_cont).way_numbers = way_numbers;
 	(*cache_cont).set_numbers = set_numbers;
+	(*cache_cont).tag_filter_bits = (3 + (int) log2(block_size) + (int) log2(set_numbers));
+	(*cache_cont).index_filter_bits = (3 + (int) log2(block_size));
 	
 	// LRU data structure initilization
 	int i, j;
@@ -248,6 +250,7 @@ void *cache_initializer(struct cache_config *config)
 	(*stat).Dirty_evictions = 0;
 
 	// Returning Declared & Initialized objects
+	// Cast these pointers at caller function
 	void **objects = malloc(sizeof(void *) * 3);
 	objects[0] = cache_cont;
 	objects[1] = cache;
