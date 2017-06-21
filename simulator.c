@@ -66,7 +66,7 @@ void ex_and_issue(struct simulator_data* simulator);
 void decode_and_value_payback(struct simulator_data* simul);
 void fetch(struct THREAD *inst, struct simulator_data* simul);
 void issue(struct RS *rs_ele, int* issue_remain);
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul);
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
@@ -595,7 +595,174 @@ void issue(struct RS *rs_ele, int* issue_remain)
 	}
 }
 
-void lsq_address_feed(struct simulator_data* simul, int idx_of_lsq)
+// TODO: LSQ 관련 함수들 만들었당께
+void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
+{
+	int width;
+	width = (*simul).core.info.issue.width;
+
+	int read_port;
+	int write_port;
+
+	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
+	struct cons_cache *cache = (*simul).cache.cache;
+	struct statistics *stat = (*simul).cache.stat;
+	bool is_perfect_cache = (*simul).cache.is_perfect_cache;
+
+	if (width == 1)
+	{
+		read_port = 1;
+		write_port = 1;
+	}
+	else if (width > 1 && width <= 4)
+	{
+		read_port = 2;
+		write_port = 1;
+	}
+	else
+	{
+		read_port = 3;
+		write_port = 2;
+	}
+
+	// LSQ_ARR를 돌면서 issue를 한다
+	// Time count를 -1에서 초기화시킴.
+	int i = 0;
+	int addr;
+	int op;
+	
+	bool are_there_dangerous_stores = false;
+	struct order_stores
+	{
+		int num;
+		int addresses[(*lsq_arr).ll.size];
+	}
+	
+	if (is_perfect_cache)
+	{
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		{
+			op = (*lsq_arr[i].lsq).opcode;
+			addr = (*lsq_arr[i].lsq).address;
+			time = (*lsq_arr[i].lsq).time;
+			
+			if (op == MemRead) // MemRead case
+			{
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
+				{
+					cache_query(cache_cont, cache, stat, op, addr);
+					(*lsq_arr[i].lsq).time = 2;
+					read_port--;
+					i++;
+				}
+				else // No address yet or there are dangerous stores
+				{
+					i++;
+				}
+			}
+			else // MemWrite case
+			{
+				if (addr != -1) // Address has been calculated
+				{
+					cache_query(cache_cont, cache, stat, op, addr);
+					(*lsq_arr[i].lsq).time = 2;
+					write_port--;
+					i++;
+				}
+				else if (time != -1) // Already issued
+				{
+					i++;
+				}
+				else // No address yet
+				{
+					are_there_dangerous_stores = true;
+					i++;
+				}
+			}
+					
+		}
+	}
+	else // Not perfect cache
+	{
+		bool is_hit;
+		struct order_stores stores;
+		stores.num = 0;
+
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		{
+			op = (*lsq_arr[i].lsq).opcode;
+			addr = (*lsq_arr[i].lsq).address;
+			time = (*lsq_arr[i].lsq).time;
+
+			if (op == MemRead) // MemRead case
+			{
+				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
+				{
+					is_hit = cache_query(cache_cont, cache, stat, op, addr);
+					if (is_hit)
+					{
+						(*lsq_arr[i].lsq).time = 2;
+					}
+					else
+					{
+						(*lsq_arr[i].lsq).time = 52;
+						int j;
+						for (j = 0; j <= stores.num; j++)
+						{
+							if ((*lsq_arr[i].lsq).address == stores.address[j])
+							{
+								(*lsq_arr[i].lsq).time = 2;
+								break;
+							}
+						}
+					}
+					
+					read_port--;
+					i++;
+				}
+				else // No address yet or there are dangerous stores
+				{
+					i++;
+				}
+			}
+			else // MemWrite case
+			{
+				if (time == -1 && addr != -1) // Address has been calculated
+				{
+					is_hit = cache_query(cache_cont, cache, stat, op, addr);
+					if (is_hit)
+					{
+						(*lsq_arr[i].lsq).time = 2;
+					}
+					else
+					{
+						(*lsq_arr[i].lsq).time = 52;
+					}
+
+					store.addresses[num] = (*lsq_arr[i].lsq).address;
+					store.num++;
+
+					write_port--;
+					i++;
+				}
+				else if (time != -1) // Already issued
+				{
+					store.addresses[num] = (*lsq_arr[i].lsq).address;
+					store.num++;
+					i++;
+				}
+				else // No address yet
+				{
+					are_there_dangerous_stores = true;
+					i++;
+				}
+			}
+					
+		}
+	}	
+}
+
+void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
 {
 	struct LSQ* lsq_ele = &(simul->core.lsq)->lsq[idx_of_lsq];
 	struct RS*  rs_ele =  &(simul->core.rs->rs[lsq_ele->rs_dest]);
@@ -616,7 +783,7 @@ void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 	}
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul)
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
@@ -624,11 +791,22 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simu
 	//if (rs_ele->time_left == 0)
 	//{//만약 실행 대기중이라면, 
 		
-		if (rs_ele->opcode = IntAlu) {//load 펑션이 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
+		if (rs_ele->opcode = IntAlu) \
+		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
-		else {//load 펑션이라면 lsq issue를 한다.
-			lsq_load_issue(simul,rs_ele->lsq_dest);
+		// TODO: 아래 두 케이스들을 체크 바람.
+		else if ((*rs_ele).opcode = MemRead) // MemRead
+		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
+			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			rs_retire(rs_ele, rob_ele);
+			(*rob_ele).status = P;
+		}
+		else // MemWrite
+		{//Store 라면 ROB의 해당 entry를 C로 만들고 LSQ에서 해당 entry에  주소를 할당한다
+			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			rs_retire(rs_ele, rob_ele);
+
 		}
 		rs_ele->is_completed_this_cycle = true;
 
@@ -667,7 +845,7 @@ void ex_and_issue(struct simulator_data* simul)
 
 			if (rs_ele->time_left == 0)
 			{//만약 Issue 되었다면
-				execute(rs_ele, rob_ptr, simul);
+				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
 			}
 			else

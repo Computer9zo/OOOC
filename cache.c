@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "cache.h"
 #include <math.h>
+#include "data_structures.h"
 
 void get_tag_and_index(struct cons_cache_controller *cache_cont, int *tag_and_index, int addr)
 {
@@ -143,11 +144,11 @@ bool write_try(struct cons_cache_controller *self, struct cons_cache *cache, str
 bool cache_query(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int access_type, int addr)
 {
 	bool result;
-	if (access_type == READ)
+	if (access_type == MemRead)
 	{
 		result = (*cache_cont).read_try(cache_cont, cache, stat, addr);
 	}
-	else if (access_type == WRITE)
+	else if (access_type == MemWrite)
 	{
 		result = (*cache_cont).write_try(cache_cont, cache, stat, addr);
 	}
