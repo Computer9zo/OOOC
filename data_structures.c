@@ -164,6 +164,15 @@ void ROB_printer(const struct ROB* printed)
 	printf("INST%-2d", printed->inst_num + 1);
 }
 
+void LSQ_printer(const struct LSQ* printed)
+{
+	printf("%-10s", instruction_name[printed->opcode]);
+	printf("R%-5d ", printed->rob_dest);
+	printf("addr%-9X ", printed->address);
+	printf("T%-2d", printed->time);
+}
+
+
 void FQ_arr_printer(const struct FQ_ARR* fq)
 {
 	printf("Fetch queue\n");
@@ -255,6 +264,32 @@ void ROB_arr_printer(const struct ROB_ARR *rob)
 	if (idx % DUMP_WIDTH != 0) { printf("\n"); }//DUMP_WIDTH 배수가 아닌 경우. 구분을 위해 줄바꿈을 한번 해준다.
 }
 
+void LSQ_arr_printer(const struct LSQ_ARR *lsq)
+{
+	printf("Reorder buffer\n");
+
+	const struct LSQ *lsq_idx = NULL;
+	int idx;
+	int ptr = lsq->ll.head;
+	for (idx = 0; idx < lsq->ll.size; ++idx)
+	{
+		printf("| LSQ%-4d: ", idx + 1);
+		if (idx <  lsq->ll.occupied)
+		{//데이터가 있으면 출력한다.
+			lsq_idx = (lsq->lsq) + (ptr);
+			ptr = lsq->ll.next[ptr];
+			LSQ_printer(lsq_idx);
+		}
+		else
+		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
+			printf("                                 ");
+		}
+
+		if (idx % DUMP_WIDTH == DUMP_WIDTH - 1) { printf("|\n"); }//줄바꿈을 위한 구문
+	}
+	if (idx % DUMP_WIDTH != 0) { printf("\n"); }//DUMP_WIDTH 배수가 아닌 경우. 구분을 위해 줄바꿈을 한번 해준다.
+}
+
 //for reporting
 void RS_reporter(const struct RS* printed, struct LL_status* rob_status)
 {
@@ -270,6 +305,12 @@ void RS_reporter(const struct RS* printed, struct LL_status* rob_status)
 void ROB_reporter(const struct ROB* printed)
 {
 	printf("%c", (printed->status==C)?'C':'P');
+}
+void LSQ_reporter(const struct LSQ* printed, struct LL_status* rob_status)
+{
+	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
+	printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
+	printf("-8%X", (printed->status == C) ? 'C' : 'P');
 }
 void REPORT_reporter(const struct REPORT* printed)
 {

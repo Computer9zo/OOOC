@@ -7,6 +7,14 @@
 
 int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report);
 
+
+struct cons_remaining
+{
+	int remain;//현재 남은 빈 횟수 
+	int blank;//현재 남은 빈 공간
+	int width;//한 사이클에 최대한 수행할 수 있는 양
+};
+
 struct simulator_data
 {
 	struct con_core
@@ -46,13 +54,6 @@ struct simulator_data
 		int cnt_MemRead;
 		int cnt_MemWrite;
 	}info;
-};
-
-struct cons_remaining
-{
-	int remain;//현재 남은 빈 횟수 
-	int blank;//현재 남은 빈 공간
-	int width;//한 사이클에 최대한 수행할 수 있는 양
 };
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
@@ -98,7 +99,7 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
-void disp_debug(struct simulator_data* simul);
+void disp_debug(struct simulator_data* simul,int dump);
 
 
 void lsq_push(struct simulator_data* simul);
@@ -155,7 +156,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		fetch(threads,&simul_data);
 
 		// Dump
-		disp_debug((*config).Dump);
+		disp_debug(&simul_data,(*config).Dump);
 		
 	}
 
@@ -756,27 +757,6 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 	}	
 }
 
-void lsq_load_issue(struct simulator_data* simul, int idx_of_lsq)
-{
-	struct LSQ* lsq_ele = &(simul->core.lsq)->lsq[idx_of_lsq];
-	struct RS*  rs_ele =  &(simul->core.rs->rs[lsq_ele->rs_dest]);
-	if (lsq_ele->address == -1)
-	{//if it not ready,
-		lsq_ele->address = rs_ele->oprd_2.data.v;
-
-	}
-}
-void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
-{
-	struct LSQ* lsq_ele = &(simul->core.lsq)->lsq[idx_of_lsq];
-	struct RS*  rs_ele = &(simul->core.rs->rs[lsq_ele->rs_dest]);
-	if (lsq_ele->address == -1)
-	{//if it not ready,
-		lsq_ele->address = rs_ele->oprd_2.data.v;
-
-	}
-}
-
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
@@ -937,19 +917,27 @@ void disp_debug(struct simulator_data* simul, int debug)
 		break;
 	case 1://rob print
 		printf("= Cycle %-5d\n", simul->info.cycle);
-		ROB_arr_reporter(&rob);
+		ROB_arr_reporter(simul->core.rob);
 		break;
 	case 2://rob and rs print
-		printf("= Cycle %-5d\n", info.cycle);
-		RS_arr_reporter(&rs, &rob);
-		ROB_arr_reporter(&rob);
+		printf("= Cycle %-5d\n", simul->info.cycle);
+		RS_arr_reporter(simul->core.rs, simul->core.rob);
+		ROB_arr_reporter(simul->core.rob);
+		break;
+	case 3://lsq print
+		printf("= Cycle %-5d\n", simul->info.cycle);
+
+		break;
+	case 4:// rs lsq, rob print
+		printf("= Cycle %-5d\n", simul->info.cycle);
+
 		break;
 	default://debug mode
-		printf("= Cycle %-5d\n", info.cycle);
-		FQ_arr_printer(&fq);
-		RAT_arr_printer(&rat);
-		RS_arr_printer(&rs, &rob);
-		ROB_arr_printer(&rob);
+		printf("= Cycle %-5d\n", simul->info.cycle);
+		FQ_arr_printer(simul->core.fq);
+		RAT_arr_printer(simul->core.rat);
+		RS_arr_printer(simul->core.rs, simul->core.rob);
+		ROB_arr_printer(simul->core.rob);
 		wait();
 		break;
 	}
