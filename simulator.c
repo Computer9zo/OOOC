@@ -805,55 +805,60 @@ void lsq_exe(struct simualator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_
 	int older_stores[lsq_arr[0].ll.occupied];
 	int older_stores_num = 0;
 
+	int lsq_ptr_idx = (*lsq_arr).ll.head;
+	struct LSQ *lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	for (i = 0; i < lsq_occupied; i++)
 	{	
-		if (((*lsq_arr[i].lsq).opcode == MemWrite) && (*lsq_arr[i].lsq).address != -1)
+		if (((*lsq_ptr).opcode == MemWrite) && (*lsq_ptr).address != -1)
 		{
-			older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+			older_stores[older_stores_num] = (*lsq_ptr).address;
 			older_stores_num++;
 		}
 
-		if (((*lsq_arr[i].lsq).time == 0) && ((*lsq_arr[i].lsq).status == P)) // Cache access completed and never been commited to ROB
+		if (((*lsq_ptr).time == 0) && ((*lsq_ptr).status == P)) // Cache access completed and never been commited to ROB
 		{
-			if ((*lsq_arr[i].lsq).opcode == MemRead) // MemRead case
+			if ((*lsq_ptr).opcode == MemRead) // MemRead case
 			{
-				if ((*lsq_arr[i].lsq).was_hit == HIT)
+				if ((*lsq_ptr).was_hit == HIT)
 				{
-					cache_reader(cache_cont, cache, (*lsq_arr[i].lsq).address);
+					cache_reader(cache_cont, cache, (*lsq_ptr).address);
 				}
-				else if ((*lsq_arr[i].lsq).was_hit == MISS)
+				else if ((*lsq_ptr).was_hit == MISS)
 				{
-					cache_filler(cache_cont, cache, stat, (*lsq_arr[i].lsq).address);
-					cache_reader(cache_cont, cache, (*lsq_arr[i].lsq).address);
+					cache_filler(cache_cont, cache, stat, (*lsq_ptr).address);
+					cache_reader(cache_cont, cache, (*lsq_ptr).address);
 				}
 				
-				(*lsq_arr[i].lsq).status = C;
-				(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C; // Completed
+				(*lsq_ptr).status = C;
+				(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C; // Completed
 			}
-			else if ((*lsq_arr[i].lsq).opcode == MemWrite)
+			else if ((*lsq_ptr).opcode == MemWrite)
 			{
 				// Actual cache / memory access of MemWrite takes place when this instruction is vaporized from LSQ. !!	
-				(*lsq_arr[i].lsq).status = C;
-				(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
+				(*lsq_ptr).status = C;
+				(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
 			}
 		}
-		else if ((*lsq_arr[i].lsq).time > 0) // Still executing
+		else if ((*lsq_ptr).time > 0) // Still executing
 		{
-			if (((*lsq_arr[i].lsq).opcode == MemRead) && ((*lsq_arr[i].lsq).time > 2)) // Forwarding
+			if (((*lsq_ptr).opcode == MemRead) && ((*lsq_ptr).time > 2)) // Forwarding
 			{
 				int j;
 				for (j = 0; j < older_stores_num; j++)
 				{
-					if ((*lsq_arr[i].lsq).address == older_stores[j])
+					if ((*lsq_ptr).address == older_stores[j])
 					{
-						(*lsq_arr[i].lsq).time = 2;
+						(*lsq_ptr).time = 2;
 						break;
 					}
 				}
 			}
 
-			(*lsq_arr[i].lsq).time--;
+			(*lsq_ptr).time--;
 		}
+
+		lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
 
 }
