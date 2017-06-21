@@ -630,22 +630,32 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	bool are_there_dangerous_stores = false;
 	int older_stores[lsq_arr[0].ll.occupied];	
 	int older_stores_num = 0;
+	
+	struct LSQ *lsq_ptr;
+	int lsq_ptr_idx;
 
+	lsq_ptr_idx = (*lsq_arr).ll.head;
+	lsq_ptr = (*lsq_arr).lsq + lsq_ptr_idx;
 	if (is_perfect_cache)
 	{
 		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
 		{
-			op = (*lsq_arr[i].lsq).opcode;
-			addr = (*lsq_arr[i].lsq).address;
-			time = (*lsq_arr[i].lsq).time;
+			// op = (*lsq_arr[i].lsq).opcode;
+			op = (*lsq_ptr).opcode;
+			// addr = (*lsq_arr[i].lsq).address;
+			addr = (*lsq_ptr).address;
+			// time = (*lsq_arr[i].lsq).time;
+			time = (*lsq_ptr).time;
 			
 			if (op == MemRead) // MemRead case
 			{
 				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
-					(*lsq_arr[i].lsq).time = 2;
-					(*lsq_arr[i].lsq).was_hit = HIT;
+					// (*lsq_arr[i].lsq).time = 2;
+					(*lsq_ptr).time = 2;
+					// (*lsq_arr[i].lsq).was_hit = HIT;
+					(*lsq_ptr).was_hit = HIT;
 					read_port--;
 					i++;
 				}
@@ -659,9 +669,12 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				if (addr != -1) // Address has been calculated
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
-					(*lsq_arr[i].lsq).time = 2;
-					(*lsq_arr[i].lsq).was_hit = HIT;
-					(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
+					// (*lsq_arr[i].lsq).time = 2;
+					(*lsq_ptr).time = 2;
+					// (*lsq_arr[i].lsq).was_hit = HIT;
+					(*lsq_ptr).was_hit = HIT;
+					// (*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
+					(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
 					write_port--;
 					i++;
 				}
@@ -675,6 +688,9 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					i++;
 				}
 			}
+
+			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
 	}
@@ -683,9 +699,12 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 		bool is_hit;
 		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
 		{
-			op = (*lsq_arr[i].lsq).opcode;
-			addr = (*lsq_arr[i].lsq).address;
-			time = (*lsq_arr[i].lsq).time;
+			// op = (*lsq_arr[i].lsq).opcode;
+			op = (*lsq_ptr).opcode;
+			// addr = (*lsq_arr[i].lsq).address;
+			addr = (*lsq_ptr).address;
+			// time = (*lsq_arr[i].lsq).time;
+			time = (*lsq_ptr).time;
 
 			if (op == MemRead) // MemRead case
 			{
@@ -694,20 +713,24 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
 					{
-						(*lsq_arr[i].lsq).time = 2;
-						(*lsq_arr[i].lsq).was_hit = HIT;
+						// (*lsq_arr[i].lsq).time = 2;
+						(*lsq_ptr).time = 2;
+						// (*lsq_arr[i].lsq).was_hit = HIT;
+						(*lsq_ptr).was_hit = HIT;
 					}
 					else
 					{
-						(*lsq_arr[i].lsq).time = 52;
-						(*lsq_arr[i].lsq).was_hit = MISS;
+						// (*lsq_arr[i].lsq).time = 52;
+						(*lsq_ptr).time = 52;
+						// (*lsq_arr[i].lsq).was_hit = MISS;
+						(*lsq_ptr).was_hit = MISS;
 						int j;
 						for (j = 0; j < older_stores_num; j++)
 						{
-							if ((*lsq_arr[i].lsq).address == older_stores[j])
+							if ((*lsq_ptr).address == older_stores[j])
 							{
-								(*lsq_arr[i].lsq).time = 2;
-								(*lsq_arr[i].lsq).was_hit = FORWARD;
+								(*lsq_ptr).time = 2;
+								(*lsq_ptr).was_hit = FORWARD;
 								break;
 							}
 						}
@@ -728,18 +751,22 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					is_hit = cache_query(cache_cont, cache, stat, op, addr);
 					if (is_hit)
 					{
-						(*lsq_arr[i].lsq).time = 2;
-						(*lsq_arr[i].lsq).was_hit = HIT;
+						// (*lsq_arr[i].lsq).time = 2;
+						(*lsq_ptr).time = 2;
+						// (*lsq_arr[i].lsq).was_hit = HIT;
+						(*lsq_ptr).was_hit = HIT;
 					}
 					else
 					{
-						(*lsq_arr[i].lsq).time = 52;
-						(*lsq_arr[i].lsq).was_hit = MISS;
+						 // (*lsq_arr[i].lsq).time = 52;
+						 (*lsq_ptr).time = 52;
+						// (*lsq_arr[i].lsq).was_hit = MISS;
+						(*lsq_ptr).was_hit = MISS;
 					}
 
-					(*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
+					(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
 
-					older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+					older_stores[older_stores_num] = (*lsq_ptr).address;
 					older_stores_num++;
 
 					write_port--;
@@ -747,7 +774,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				}
 				else if (time != -1) // Already issued
 				{
-					older_stores[older_stores_num] = (*lsq_arr[i].lsq).address;
+					older_stores[older_stores_num] = (*lsq_ptr).address;
 					older_stores_num++;
 					i++;
 				}
@@ -757,6 +784,9 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					i++;
 				}
 			}
+
+			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
 	}	
