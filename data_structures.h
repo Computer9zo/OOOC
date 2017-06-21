@@ -223,7 +223,6 @@ struct LSQ// Load Store queue
 	enum instruction opcode; // operation
 	int time; //
 	int rob_dest; // status = P; means pending, status = C; means completed
-	int rs_dest;//linked RS index
 	int address;//where it from
 };
 

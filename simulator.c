@@ -647,7 +647,8 @@ void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 	// --(simul->core.info.write.remain) 이 된다.
 }
 
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul)
+// TODO: execute를 호출하는 함수들에 전달 인자: struct LSQ
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
@@ -655,11 +656,22 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simu
 	//if (rs_ele->time_left == 0)
 	//{//만약 실행 대기중이라면, 
 		
-		if (rs_ele->opcode = IntAlu) {//load 펑션이 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
+		if (rs_ele->opcode = IntAlu) \
+		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
-		else {//load 펑션이라면 lsq issue를 한다.
-			lsq_load_issue(simul,rs_ele->lsq_dest);
+		// TODO: 아래 두 케이스들을 체크 바람.
+		else if ((*rs_ele).opcode = MemRead) // MemRead
+		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
+			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			rs_retire(rs_ele, rob_ele);
+			(*rob_ele).status = P;
+		}
+		else // MemWrite
+		{//Store 라면 ROB의 해당 entry를 C로 만들고 LSQ에서 해당 entry에  주소를 할당한다
+			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			rs_retire(rs_ele, rob_ele);
+
 		}
 		rs_ele->is_completed_this_cycle = true;
 
