@@ -51,8 +51,6 @@
  *
  */
 
-enum { READ = 10, WRITE = 20 };
-
 struct cache_config
 {
 	int capacity;
