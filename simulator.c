@@ -131,7 +131,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	//check cycle state
 
 	
-	while (is_work_left(threads, &simul_data));
+	while (is_work_left(threads, &simul_data))
 	{	
 		//cycle plus
 		++(simul_data.info.cycle);
