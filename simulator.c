@@ -7,10 +7,6 @@
 
 int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num, struct REPORT *out_report);
 
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
-
-void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
-
 struct cons_remaining
 {
 	int remain;//현재 남은 빈 횟수 
@@ -58,6 +54,10 @@ struct simulator_data
 		int cnt_MemWrite;
 	}info;
 };
+
+void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+
+void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
 
