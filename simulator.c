@@ -805,7 +805,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	}	
 }
 
-void lsq_exe(struct simualator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
 {
 	// If time == 0, change the status of corresponding entry in ROB to C
 	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
