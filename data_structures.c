@@ -137,7 +137,7 @@ void RAT_printer(const struct RAT* printed)
 		printf("%5d", printed->Q+1);
 }
 
-void RS_printer(const struct RS* printed, struct LL_status* rob_status)
+void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 {
 	if (printed->is_valid)
 	{
@@ -164,7 +164,7 @@ void ROB_printer(const struct ROB* printed)
 	printf("INST%-2d", printed->inst_num + 1);
 }
 
-void LSQ_printer(const struct LSQ* printed,struct LL_status* rob_status)
+void LSQ_printer(const struct LSQ* printed, const struct LL_status* rob_status)
 {
 	printf("%-10s", instruction_name[printed->opcode]);
 	printf("ROB%-5d ", ll_get_cidx(printed->rob_dest, rob_status) + 1);
@@ -292,7 +292,7 @@ void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 }
 
 //for reporting
-void RS_reporter(const struct RS* printed, struct LL_status* rob_status)
+void RS_reporter(const struct RS* printed, const struct LL_status* rob_status)
 {
 	if (printed->is_valid)
 	{
@@ -307,7 +307,7 @@ void ROB_reporter(const struct ROB* printed)
 {
 	printf("%c", (printed->status==C)?'C':'P');
 }
-void LSQ_reporter(const struct LSQ* printed, struct LL_status* rob_status)
+void LSQ_reporter(const struct LSQ* printed, const struct LL_status* rob_status)
 {
 	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
 	printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
@@ -332,7 +332,7 @@ void REPORT_reporter(const struct REPORT* printed)
 		printf("%s%-8d%d\n", "Inst T", i + 1, (printed->Inst_per_thread)[i]);
 	}
 }
-void RS_arr_reporter(const struct RS_ARR *rs, struct ROB_ARR *rob)
+void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob)
 {
 	const struct RS *rs_idx = NULL;
 	int idx;
@@ -472,12 +472,12 @@ void ll_cnt_push(struct LL_status *status)
 	status->tail = status->next[status->tail];
 }
 
-int ll_next_pos(struct LL_status *status, int origin_pos)
+int ll_next_pos(const struct LL_status *status, const int origin_pos)
 {
 	return status->next[origin_pos];
 }
 
-int ll_get_cidx(struct LL_status *status, int target_idx)
+int ll_get_cidx(const struct LL_status *status, const int target_idx)
 {
 	int idx;
 	int ptr = status->head;
