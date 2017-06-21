@@ -722,15 +722,15 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr)
 	else // Not perfect cache
 	{
 		bool is_hit;
+		struct order_stores stores;
+		stores.num = 0;
+
 		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
 		{
 			op = (*lsq_arr[i].lsq).opcode;
 			addr = (*lsq_arr[i].lsq).address;
 			time = (*lsq_arr[i].lsq).time;
 
-			struct order_stores stores;
-			stores.num = 0;
-			
 			if (op == MemRead) // MemRead case
 			{
 				if (time == -1 && addr != -1 && !are_there_dangerous_stores) // Address has been calculated and there are no older stores with unknown addresses
