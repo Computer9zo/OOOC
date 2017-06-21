@@ -62,7 +62,6 @@ void cache_read(struct cons_cache_controller *self, struct cons_cache *cache, in
 {
 	int tag_and_index[2];
 	get_tag_and_index(self, tag_and_index, addr);
-	int tag = tag_and_index[0];
 	int index = tag_and_index[1];
 
 	int target_way = (*self).search(self, cache, addr);
@@ -253,4 +252,6 @@ void *cache_initializer(struct cache_config *config)
 	objects[0] = cache_cont;
 	objects[1] = cache;
 	objects[2] = stat;
+
+	return *objects;
 }
