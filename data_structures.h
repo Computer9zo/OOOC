@@ -54,13 +54,13 @@ void CONFIG_printer(const struct CONFIG* printed);
 void RAT_printer(const struct RAT* printed);
 void RS_printer(const struct RS* printed, struct LL_status* rob_status);
 void ROB_printer(const struct ROB* printed);
-void LSQ_printer(const struct LSQ* printed);
+void LSQ_printer(const struct LSQ* printed, struct LL_status* rob_status);
 
 void FQ_arr_printer(const struct FQ_ARR* fq);
 void RAT_arr_printer(const struct RAT_ARR* rat);
 void RS_arr_printer(const struct RS_ARR *rs, const struct ROB_ARR *rob);
 void ROB_arr_printer(const struct ROB_ARR *rob);
-void LSQ_arr_printer(const struct LSQ_ARR *lsq);
+void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob);
 //for reporting
 void RS_reporter(const struct RS* printed, struct LL_status* rob_status);
 void ROB_reporter(const struct ROB* printed);

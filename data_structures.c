@@ -164,12 +164,13 @@ void ROB_printer(const struct ROB* printed)
 	printf("INST%-2d", printed->inst_num + 1);
 }
 
-void LSQ_printer(const struct LSQ* printed)
+void LSQ_printer(const struct LSQ* printed,struct LL_status* rob_status)
 {
 	printf("%-10s", instruction_name[printed->opcode]);
-	printf("R%-5d ", printed->rob_dest);
+	printf("ROB%-5d ", ll_get_cidx(printed->rob_dest, rob_status) + 1);
 	printf("addr%-9X ", printed->address);
 	printf("T%-2d", printed->time);
+	printf(" %c", (printed->status == C) ? 'C' : 'P');
 }
 
 
@@ -256,7 +257,7 @@ void ROB_arr_printer(const struct ROB_ARR *rob)
 		}
 		else
 		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
-			printf("                                 ");
+			printf("                                   ");
 		}
 
 		if (idx % DUMP_WIDTH == DUMP_WIDTH - 1) { printf("|\n"); }//줄바꿈을 위한 구문
@@ -264,9 +265,9 @@ void ROB_arr_printer(const struct ROB_ARR *rob)
 	if (idx % DUMP_WIDTH != 0) { printf("\n"); }//DUMP_WIDTH 배수가 아닌 경우. 구분을 위해 줄바꿈을 한번 해준다.
 }
 
-void LSQ_arr_printer(const struct LSQ_ARR *lsq)
+void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 {
-	printf("Reorder buffer\n");
+	printf("Load store queue\n");
 
 	const struct LSQ *lsq_idx = NULL;
 	int idx;
@@ -278,11 +279,11 @@ void LSQ_arr_printer(const struct LSQ_ARR *lsq)
 		{//데이터가 있으면 출력한다.
 			lsq_idx = (lsq->lsq) + (ptr);
 			ptr = lsq->ll.next[ptr];
-			LSQ_printer(lsq_idx);
+			LSQ_printer(lsq_idx,&(rob->ll));
 		}
 		else
 		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
-			printf("                                 ");
+			printf("                                   ");
 		}
 
 		if (idx % DUMP_WIDTH == DUMP_WIDTH - 1) { printf("|\n"); }//줄바꿈을 위한 구문
@@ -357,14 +358,14 @@ void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 		{
 			lsq_idx = (lsq->lsq) + (ptr);
 			ptr = lsq->ll.next[ptr];
-			LSQ_reporter(lsq_idx,&rob->ll);
+			LSQ_reporter(lsq_idx,&(rob->ll));
 		}
 		printf("\n");
 
 	}
 }
 
-void ROB_arr_reporter(const struct ROB_ARR *lsq)
+void ROB_arr_reporter(const struct ROB_ARR *rob)
 {
 	const struct ROB *rob_idx = NULL;
 	int idx;
