@@ -69,7 +69,7 @@ void fetch(struct THREAD *inst, struct simulator_data* simul);
 
 
 void issue(struct RS *rs_ele, int* issue_remain);
-void execute(struct RS *rs_ele, struct ROB* rob_ele, struct simulator_data* simul);
+void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
@@ -647,7 +647,6 @@ void lsq_write_issue(struct simulator_data* simul, int idx_of_lsq)
 	// --(simul->core.info.write.remain) 이 된다.
 }
 
-// TODO: execute를 호출하는 함수들에 전달 인자: struct LSQ
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
 {
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
@@ -710,7 +709,7 @@ void ex_and_issue(struct simulator_data* simul)
 
 			if (rs_ele->time_left == 0)
 			{//만약 Issue 되었다면
-				execute(rs_ele, rob_ptr, simul);
+				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
 			}
 			else
