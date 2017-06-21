@@ -364,7 +364,7 @@ void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 	}
 }
 
-void ROB_arr_reporter(const struct ROB_ARR *lsq);
+void ROB_arr_reporter(const struct ROB_ARR *lsq)
 {
 	const struct ROB *rob_idx = NULL;
 	int idx;
