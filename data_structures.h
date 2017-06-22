@@ -82,8 +82,8 @@ int ca_get_cidx(int idx,struct CA_status *status);//진짜 어레이 인덱스를 head부�
 struct LL_status ll_cnt_init(int size);
 void ll_cnt_pop(struct LL_status *status, int pop_num);
 void ll_cnt_push(struct LL_status *status);
-int ll_next_pos(struct LL_status *status, int origin_pos);
-int ll_get_cidx(struct LL_status *status, int target_idx);
+int ll_next_pos(const struct LL_status *status, const int origin_pos);
+int ll_get_cidx(const struct LL_status *status, const int target_idx);
 void ll_delete(struct LL_status *status);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
