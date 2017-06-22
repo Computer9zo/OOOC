@@ -484,8 +484,8 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			//init;
 			struct RAT_ARR* rat = simul->core.rat;
 			struct ROB_ARR* rob = simul->core.rob;
-			struct RS_ARR* rs = simul->core.rs;
-			struct FQ_ARR* fq = simul->core.fq;
+			// struct RS_ARR* rs = simul->core.rs;  UNUSED
+			// struct FQ_ARR* fq = simul->core.fq;  UNUSED
 			struct LSQ_ARR*lsq = simul->core.lsq;
 
 			// Putting first element of Fetch Queue to Reservation Station	
