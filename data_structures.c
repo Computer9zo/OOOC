@@ -143,13 +143,14 @@ void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 {
 	if (printed->is_valid)
 	{
-		printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
+		// printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
+		printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest) + 1);
 		
 		if (printed->oprd_1.state == V){printf("V     ");}
-		else { printf("Q:%-3d ", ll_get_cidx(printed->oprd_1.data.q, rob_status) + 1); }
+		else { printf("Q:%-3d ", ll_get_cidx(rob_status, printed->oprd_1.data.q) + 1); }
 		
 		if (printed->oprd_2.state == V) { printf("V     "); }
-		else { printf("Q:%-3d ", ll_get_cidx(printed->oprd_2.data.q, rob_status) + 1); }
+		else { printf("Q:%-3d ", ll_get_cidx(rob_status, printed->oprd_2.data.q) + 1); }
 
 		printf("left%2d", printed->time_left);
 	}
@@ -169,7 +170,7 @@ void ROB_printer(const struct ROB* printed)
 void LSQ_printer(const struct LSQ* printed, const struct LL_status* rob_status)
 {
 	printf("%-10s", instruction_name[printed->opcode]);
-	printf("ROB%-5d ", ll_get_cidx(printed->rob_dest, rob_status) + 1);
+	printf("ROB%-5d ", ll_get_cidx(rob_status, printed->rob_dest) + 1);
 	printf("addr%-9X ", printed->address);
 	printf("T%-2d", printed->time);
 	printf(" %c", (printed->status == C) ? 'C' : 'P');
@@ -299,9 +300,9 @@ void RS_reporter(const struct RS* printed, const struct ROB_ARR* rob)
 	const struct LL_status* rob_status = &(rob->ll);
 	if (printed->is_valid)
 	{
-		printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status)+1);
-		(printed->oprd_1.state == V) ? printf("V") : printf("%5d", ll_get_cidx(printed->oprd_1.data.q, rob_status) + 1);
-		(printed->oprd_2.state == V) ? printf("  V  ") : printf("%5d", ll_get_cidx(printed->oprd_2.data.q, rob_status) + 1);
+		printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest)+1);
+		(printed->oprd_1.state == V) ? printf("V") : printf("%5d", ll_get_cidx(rob_status, printed->oprd_1.data.q) + 1);
+		(printed->oprd_2.state == V) ? printf("  V  ") : printf("%5d", ll_get_cidx(rob_status, printed->oprd_2.data.q) + 1);
 		printf("T%d", rob->rob[printed->rob_dest].inst_num);
 	}
 	else
@@ -316,7 +317,7 @@ void LSQ_reporter(const struct LSQ* printed, const struct ROB_ARR* rob)
 {
 	const struct LL_status* rob_status = &(rob->ll);
 	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
-	printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
+	printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest) + 1);
 	if (printed->address < 0) 
 	{
 		printf("%9X", 0);
