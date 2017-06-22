@@ -889,16 +889,17 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
-		// TODO: 아래 두 케이스들을 체크 바람.
+		// TODO: 아래 두 케이스들을 체크 바람. 
+		// SOME MISS, i fix it.
 		else if (((*rs_ele).opcode = MemRead)) // MemRead
 		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
-			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
 			rs_retire(rs_ele, rob_ele);
 			(*rob_ele).status = P;
 		}
 		else // MemWrite
 		{//Store 라면 ROB의 해당 entry를 C로 만들고 LSQ에서 해당 entry에  주소를 할당한다
-			(*lsq_arr[(*rs_ele).lsq_dest].lsq).address = (*rs_ele).oprd_1.data.v;
+			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
 			rs_retire(rs_ele, rob_ele);
 
 		}
