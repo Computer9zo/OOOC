@@ -110,15 +110,15 @@ void LSQ_delete(struct LSQ_ARR lsq_arr)
 void INST_printer(const struct INST* printed)
 {//print inst
 	printf("%-10s", instruction_name[printed->opcode]);
-	printf("%5d", printed->dest);
+	printf("%3d", printed->dest);
 	printf("%5d", printed->oprd_1);
-	printf("%5d", printed->oprd_2);
+	printf("%5d  ", printed->oprd_2);
 }
 
 void FQ_printer(const struct FQ* printed)
 {
 	INST_printer((struct INST*)printed);
-	printf("INST%-2d", printed->inst_num + 1);
+	printf("T%-2d", printed->inst_num + 1);
 }
 
 void CONFIG_printer(const struct CONFIG* printed)
@@ -193,7 +193,7 @@ void FQ_arr_printer(const struct FQ_ARR* fq)
 		}
 		else 
 		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
-			printf("                         "); 
+			printf("                            "); 
 		}
 
 		printf(" ");
@@ -294,23 +294,27 @@ void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 }
 
 //for reporting
-void RS_reporter(const struct RS* printed, const struct LL_status* rob_status)
+void RS_reporter(const struct RS* printed, const struct ROB_ARR* rob)
 {
+	const struct LL_status* rob_status = &(rob->ll);
 	if (printed->is_valid)
 	{
 		printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status)+1);
-		(printed->oprd_1.state == V) ? printf("    V") : printf("%5d", ll_get_cidx(printed->oprd_1.data.q, rob_status) + 1);
-		(printed->oprd_2.state == V) ? printf("    V") : printf("%5d", ll_get_cidx(printed->oprd_2.data.q, rob_status) + 1);
+		(printed->oprd_1.state == V) ? printf("V") : printf("%5d", ll_get_cidx(printed->oprd_1.data.q, rob_status) + 1);
+		(printed->oprd_2.state == V) ? printf("  V  ") : printf("%5d", ll_get_cidx(printed->oprd_2.data.q, rob_status) + 1);
+		printf("T%d", rob->rob[printed->rob_dest].inst_num);
 	}
 	else
-		printf("ROB0        0    0");
+		printf("ROB0    0    0    T-");
 }
 void ROB_reporter(const struct ROB* printed)
 {
-	printf("%c", (printed->status==C)?'C':'P');
+	printf("%c  ", (printed->status==C)?'C':'P');
+	printf("T%d", printed->inst_num);
 }
-void LSQ_reporter(const struct LSQ* printed, const struct LL_status* rob_status)
+void LSQ_reporter(const struct LSQ* printed, const struct ROB_ARR* rob)
 {
+	const struct LL_status* rob_status = &(rob->ll);
 	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
 	printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
 	if (printed->address < 0) 
@@ -321,6 +325,7 @@ void LSQ_reporter(const struct LSQ* printed, const struct LL_status* rob_status)
 	{
 		printf("%9X", printed->address);
 	}
+	printf("T%d", rob->rob[printed->rob_dest].inst_num);
 }
 void REPORT_reporter(const struct REPORT* printed)
 {

@@ -39,6 +39,8 @@ int main(int argc, char* argv[])
 	disp_blank_line();
 
 	//run simulation
+
+	printf("Start simulation\n");
 	struct REPORT report;
 	if (core_simulator(&config, threads, thread_num, &report) != 0) { //simulate
 		disp_error();
@@ -132,7 +134,7 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 		printf("Read config %s\n", argv[1]);
 		if (!config_reader(argv[1], out_config)) {
 			printf("Config read error!\n");
-			//	return 1;
+			return 1;
 		}
 
 		//inst reading
@@ -141,12 +143,12 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 			strcat(inst_filename, ",");
 			strcat(inst_filename, argv[idx+1]);
 		}
-		if (!make_thread(inst_filename + 1, *out_inst_num, out_threads)) {
+		if (1==make_thread(inst_filename + 1, *out_inst_num, out_threads)) {
 			printf("Data read error\n");
-			//return 1;
+			return 1;
 		}
 		free(inst_filename);
-
+		
 		//make report name
 		strcat(out_report_name, get_filename(argv[1]));
 		for (int idx = 0; idx < (*out_inst_num); ++idx) {
@@ -154,6 +156,7 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 			strcat(out_report_name, get_filename(argv[idx+2]));
 		}
 		strcat(out_report_name, "_out.txt");
+
 	}
 	return 0;
 }
@@ -161,7 +164,7 @@ int read_all_data(int argc, char** argv, struct CONFIG* out_config,
 int free_all_data(struct THREAD* out_threads, int out_inst_num)//free data
 {
 	for (int idx = 0; idx < out_inst_num; ++idx) {
-		thread_delete(&out_threads[idx]);
+		THREAD_delete(&out_threads[idx]);
 	}
 	free(out_threads);
 	

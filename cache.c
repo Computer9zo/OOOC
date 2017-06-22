@@ -200,7 +200,7 @@ void cache_writer(struct cons_cache_controller *cache_cont, struct cons_cache *c
 	(*cache_cont).cache_write(cache_cont, cache, addr);
 }
 
-void *cache_initializer(struct cache_config *config)
+void **cache_initializer(struct cache_config *config)
 {
 	int capacity = (*config).capacity;
 	int block_size = (*config).block_size;
@@ -256,5 +256,5 @@ void *cache_initializer(struct cache_config *config)
 	objects[1] = cache;
 	objects[2] = stat;
 
-	return *objects;
+	return objects;
 }

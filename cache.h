@@ -122,7 +122,7 @@ struct dummy // For struct hack of cons_cache_controller
 
 
 // Public methods for other modules
-void *cache_initializer(struct cache_config *config);
+void **cache_initializer(struct cache_config *config);
 
 bool cache_query(struct cons_cache_controller *cache_cont, struct cons_cache *cache, struct statistics *stat, int access_type, int addr);
 

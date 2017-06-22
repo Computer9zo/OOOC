@@ -15,7 +15,7 @@ bool make_thread(char* filename, int num_of_file, struct THREAD ** out_threads)
 {//inst to thread package function
 	struct INST** _inst_arrays;
 	int*		  _inst_arrays_len;
-	if (make_inst_array(filename, &_inst_arrays, &_inst_arrays_len))
+	if (true==make_inst_array(filename, &_inst_arrays, &_inst_arrays_len))
 	{
 		(*out_threads) = (struct THREAD*)calloc(num_of_file, sizeof(struct THREAD));//thread array create
 		if ((*out_threads) == NULL)
@@ -24,10 +24,13 @@ bool make_thread(char* filename, int num_of_file, struct THREAD ** out_threads)
 		}
 		for (int i = 0; i < num_of_file; ++i)
 		{//init threads
+			//printf("ss\n");
 			(*out_threads)[i] = THREAD_create(_inst_arrays[i], _inst_arrays_len[i]);
 		}
+		//printf("dd\n");
 		free(_inst_arrays);
 		free(_inst_arrays_len);
+		//printf("ff\n");
 	}
 	else
 	{//some problem in make inst array.
@@ -131,7 +134,7 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 				return false;
 			}
 			
-			if ((length<100)||(token_length % length/100 == 0))
+			if ((length<100)||(token_length % (length/100) == 0))
 			{
 				printf("\b\b\b\b%3d%%", token_length * 100 / length);//for make people not boring
 			}

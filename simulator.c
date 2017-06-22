@@ -641,8 +641,10 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	int time;
 
 	bool are_there_dangerous_stores = false;
-	int older_stores[lsq_arr[0].ll.occupied];	
+	int* older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+		//[lsq_arr[0].ll.occupied];	
 	int older_stores_num = 0;
+	printf("te");
 	
 	struct LSQ *lsq_ptr;
 	int lsq_ptr_idx;
@@ -803,6 +805,12 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					
 		}
 	}	
+	printf("te");
+	if (lsq_arr->ll.occupied > 0)
+	{
+		free(older_stores);
+	}
+	printf("te");
 }
 
 void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
@@ -815,7 +823,7 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 	int i;
 	int lsq_occupied = lsq_arr[0].ll.occupied;
 
-	int older_stores[lsq_arr[0].ll.occupied];
+	int* older_stores=calloc(lsq_arr->ll.occupied, sizeof(int));
 	int older_stores_num = 0;
 
 	int lsq_ptr_idx = (*lsq_arr).ll.head;
@@ -873,7 +881,10 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 		lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
-
+	if (lsq_arr->ll.occupied > 0)
+	{
+		free(older_stores);
+	}
 }
 
 
