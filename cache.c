@@ -125,8 +125,8 @@ bool read_try(struct cons_cache_controller *self, struct cons_cache *cache, stru
 	(*stat).Read_accesses++; // Count read access
 	int tag_and_index[2];
 	get_tag_and_index(self, tag_and_index, addr);
-	int tag = tag_and_index[0];
-	int index = tag_and_index[1];
+	// int tag = tag_and_index[0];    UNUSED
+	// int index = tag_and_index[1];  UNUSED
 
 	int target_way = (*self).search(self, cache, addr);
 	if ( target_way == -1)
@@ -147,8 +147,8 @@ bool write_try(struct cons_cache_controller *self, struct cons_cache *cache, str
 	(*stat).Write_accesses++;
 	int tag_and_index[2];
 	get_tag_and_index(self, tag_and_index, addr);
-	int tag = tag_and_index[0];
-	int index = tag_and_index[1];
+	// int tag = tag_and_index[0];   UNUSED
+	// int index = tag_and_index[1]; UNUSED
 
 	int target_way = (*self).search(self, cache, addr);
 	if ( target_way == -1)
