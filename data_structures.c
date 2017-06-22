@@ -348,7 +348,7 @@ void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob)
 	{
 		rs_idx = (rs->rs) + (idx);
 		printf("RS%-4d : ", idx + 1);
-		RS_reporter(rs_idx, &(rob->ll));
+		RS_reporter(rs_idx, rob);
 		printf("\n");
 	}
 }
@@ -366,7 +366,7 @@ void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 		{
 			lsq_idx = (lsq->lsq) + (ptr);
 			ptr = lsq->ll.next[ptr];
-			LSQ_reporter(lsq_idx,&(rob->ll));
+			LSQ_reporter(lsq_idx,rob);
 		}
 		printf("\n");
 

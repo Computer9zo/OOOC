@@ -147,11 +147,11 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
-		commit(&simul_data);
+		//commit(&simul_data);
 		ex_and_issue(&simul_data);
 		printf("t");
 		//lsq_ex_and_retire(&simul_data);
-		lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+		//lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
 		lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
 		printf("t");
 		//issue();
@@ -995,7 +995,7 @@ void commit(struct simulator_data* simul)
 	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크하기 위한 함수
 	bool commit_done = false;
 	printf("b");
-	bool* thread_commit = (bool*)calloc(simul->info.num_of_inst,sizeof(bool));
+	bool* thread_commit = calloc(simul->info.num_of_inst,sizeof(bool));
 	printf("b");
 	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
 
@@ -1059,7 +1059,7 @@ void commit(struct simulator_data* simul)
 void wait(void)
 {
 	printf("\nPress any key to continue :\n");
-	//getchar();
+	getchar();
 }
 
 void disp_debug(struct simulator_data* simul, int debug)
