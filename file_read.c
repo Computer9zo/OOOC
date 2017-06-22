@@ -44,7 +44,7 @@ bool make_inst_array(char* filename, struct INST *** out_inst_arr, int **out_len
 	printf("Read %s ", filename);
 	
 	// thread number check
-	char* filename_tmp[4096];
+	char filename_tmp[4096];
 	strcpy(filename_tmp,filename);
 	char* thread_name_buffer=strtok(filename_tmp,",");
 	int thread_num=0;

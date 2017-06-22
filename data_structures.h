@@ -62,9 +62,9 @@ void RS_arr_printer(const struct RS_ARR *rs, const struct ROB_ARR *rob);
 void ROB_arr_printer(const struct ROB_ARR *rob);
 void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob);
 //for reporting
-void RS_reporter(const struct RS* printed, const struct LL_status* rob_status);
+void RS_reporter(const struct RS* printed, const struct ROB_ARR* rob);
 void ROB_reporter(const struct ROB* printed);
-void LSQ_reporter(const struct LSQ* printed, const struct LL_status* rob_status);
+void LSQ_reporter(const struct LSQ* printed, const struct ROB_ARR* rob);
 void REPORT_reporter(const struct REPORT* printed);
 void RS_arr_reporter(const struct RS_ARR *rs, const struct ROB_ARR *rob);
 void ROB_arr_reporter(const struct ROB_ARR *rob);
