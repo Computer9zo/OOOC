@@ -209,6 +209,10 @@ void **cache_initializer(struct cache_config *config)
 	
 	// Initializing cache_controller *cache_cont 
 	struct cons_cache_controller *cache_cont = malloc(sizeof(struct dummy) + ((sizeof(int) * way_numbers * set_numbers)));
+	if (cache_cont == NULL)
+	{
+		printf("ERROR: cache.c - cache_cont malloc failed\n");
+	}
 	// Basic variables initialization
 	(*cache_cont).capacity = capacity;
 	(*cache_cont).block_size = block_size;
@@ -239,9 +243,17 @@ void **cache_initializer(struct cache_config *config)
 	
 	// Initializing cache *cache
 	struct cons_cache *cache = calloc((3 * way_numbers * set_numbers), sizeof(int));
+	if (cache == NULL)
+	{
+		printf("ERROR: cache.c - cache calloc failed\n");
+	}
 	
 	// Initializing statistics *stat
 	struct statistics *stat = malloc(sizeof(struct statistics));
+	if (stat == NULL)
+	{
+		printf("ERROR: cache.c - stat malloc failed\n");
+	}
 	(*stat).Read_accesses = 0;
 	(*stat).Write_accesses = 0;
 	(*stat).Read_misses = 0;
