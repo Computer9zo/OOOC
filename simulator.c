@@ -644,7 +644,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	int* older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
 		//[lsq_arr[0].ll.occupied];	
 	int older_stores_num = 0;
-	printf("te");
+	//printf("te");
 	
 	struct LSQ *lsq_ptr;
 	int lsq_ptr_idx;
@@ -805,12 +805,12 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					
 		}
 	}	
-	printf("te");
+	//printf("te");
 	if (lsq_arr->ll.occupied > 0)
 	{
 		free(older_stores);
 	}
-	printf("te");
+	//printf("te");
 }
 
 void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
@@ -994,8 +994,10 @@ void commit(struct simulator_data* simul)
 	
 	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크하기 위한 함수
 	bool commit_done = false;
+	printf("t");
 	bool* thread_commit = (bool*)calloc(simul->info.num_of_inst,sizeof(bool));
 	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
+	printf("t");
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
