@@ -55,9 +55,9 @@ struct simulator_data
 	}info;
 };
 
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+void lsq_issue(struct simulator_data *simul);
 
-void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+void lsq_exe(struct simulator_data *simul);
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
 
@@ -150,11 +150,9 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
 		printf("t");
-		//lsq_ex_and_retire(&simul_data);
-		//lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
-		//lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+		lsq_exe(&simul_data);
+		lsq_issue(&simul_data);
 		printf("t");
-		//issue();
 		
 		
 
@@ -383,7 +381,7 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 		while ( simul->core.info.fq.remain>0 )
 		{
 			//대입
-			fq_ele = (simul->core.fq->fq) + (ca_next_pos(&(simul->core.fq->ca)));
+			fq_ele = (simul->core.fq->fq) + (CA_next_pos(&(simul->core.fq->ca)));
 			current_inst = (current_thread->instruction) + (current_thread->pc);
 
 			fq_ele->opcode = current_inst->opcode;
@@ -415,40 +413,40 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 
 void lsq_push(struct simulator_data* simul)
 {
-	ll_cnt_push(&(simul->core.lsq->ll));
+	LL_cnt_push(&(simul->core.lsq->ll));
 	--(simul->core.info.lsq.blank);
 	--(simul->core.info.lsq.remain);
 }
 
 void lsq_pop(struct simulator_data* simul, int pop_idx)
 {
-	ll_cnt_pop(&(simul->core.lsq->ll), pop_idx);
+	LL_cnt_pop(&(simul->core.lsq->ll), pop_idx);
 	++(simul->core.info.lsq.blank);
 }
 
 void rob_push(struct simulator_data* simul)
 {
-	ll_cnt_push(&(simul->core.rob->ll));
+	LL_cnt_push(&(simul->core.rob->ll));
 	--(simul->core.info.rob.blank);
 	--(simul->core.info.rob.remain);
 }
 
 void rob_pop(struct simulator_data* simul, int pop_idx)
 {
-	ll_cnt_pop(&(simul->core.rob->ll), pop_idx);
+	LL_cnt_pop(&(simul->core.rob->ll), pop_idx);
 	++(simul->core.info.rob.blank);
 }
 
 void fq_push(struct simulator_data* simul)
 {
-	ca_cnt_push(&(simul->core.fq->ca));
+	CA_cnt_push(&(simul->core.fq->ca));
 	--(simul->core.info.fq.blank);
 	--(simul->core.info.fq.remain);
 }
 
 void fq_pop(struct simulator_data* simul)
 {
-	ca_cnt_pop(&(simul->core.fq->ca));
+	CA_cnt_pop(&(simul->core.fq->ca));
 	++(simul->core.info.fq.blank);
 }
 
@@ -622,9 +620,11 @@ void issue(struct RS *rs_ele, int* issue_remain)
 }
 
 // TODO: LSQ 관련 함수들 만들
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+void lsq_issue(struct simulator_data *simul)
 {
-	
+	struct LSQ_ARR *lsq_arr = simul->core.lsq;
+	struct ROB_ARR *rob_arr = simul->core.rob;
+
 	int read_port = simul->core.info.load.width;
 	int write_port = simul->core.info.write.width;
 
@@ -704,7 +704,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				}
 			}
 
-			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
@@ -800,7 +800,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				}
 			}
 
-			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
@@ -813,8 +813,11 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	//printf("te");
 }
 
-void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+void lsq_exe(struct simulator_data *simul)
 {
+	struct LSQ_ARR *lsq_arr = simul->core.lsq;
+	struct ROB_ARR *rob_arr = simul->core.rob;
+
 	// If time == 0, change the status of corresponding entry in ROB to C
 	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
 	struct cons_cache *cache = (*simul).cache.cache;
@@ -878,7 +881,7 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 			(*lsq_ptr).time--;
 		}
 
-		lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+		lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
 	if (lsq_arr->ll.occupied > 0)
@@ -963,7 +966,7 @@ void ex_and_issue(struct simulator_data* simul)
 		}
 
 		//다음 원소로 포인터를 이동한다
-		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr_idx = LL_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
 
 	}
@@ -1010,28 +1013,28 @@ void commit(struct simulator_data* simul)
 			{
 			case C:
 				rat[rob_ptr->inst_num].rat[rob_ptr->dest].RF_valid = true;
-				ll_cnt_pop(&(rob->ll), rob_ptr_idx);
+				LL_cnt_pop(&(rob->ll), rob_ptr_idx);
 				--remain_commit;
 				
 				// Actual cache write happens
 				if (rob_ptr->opcode == MemWrite)
 				{
-					if((*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].was_hit == HIT)
+					if((*lsq_arr).lsq[LL_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].was_hit == HIT)
 					{
 						// If it was HIT, just write 
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[LL_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
 					}
 					else
 					{
 						// If it was MISS, fill cache first and the write
-						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[LL_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[LL_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
 
 					}
 				}
 				
 				// Remove from LSQ
-				ll_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
+				LL_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
 
 				//if (rob_ptr->opcode == MemWrite)
 				//{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
@@ -1051,9 +1054,10 @@ void commit(struct simulator_data* simul)
 			}
 		}
 		//다음 ROB로 포인터를 옮긴다
-		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr_idx = LL_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
 	}
+	free(thread_commit);
 }
 
 void wait(void)

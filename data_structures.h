@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include "Iterator.h"
 
 enum flag { Q = 0, V = 1 }; // has V? or Q?
 enum instruction { IntAlu = 0, MemRead = 1, MemWrite = 2 }; // Instruction Type
@@ -22,8 +23,6 @@ struct RS;         // Single element in Reservation Station
 struct RS_ARR;         //Reservation Station
 struct ROB;        // Single element in ReOrder Buffer
 struct RS_ARR;      //ReOrder Buffer
-struct CA_status;  // Status of cyclic array
-struct LL_status;  // Status of Limited Linked list
 struct LSQ;// Load Store queue
 struct LSQ_ARR;// Load Store queue
 
@@ -72,19 +71,6 @@ void LSQ_arr_reporter(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob);
 
 void REPORT_fprinter(const struct REPORT* printed, FILE* fileID);
 
-//for ca
-void ca_cnt_push(struct CA_status *status);
-void ca_cnt_pop(struct CA_status *status);
-int ca_next_pos(struct CA_status *status);
-int ca_get_cidx(int idx,struct CA_status *status);//진짜 어레이 인덱스를 head부터의 거리로 바꿈
-
-//for ll
-struct LL_status ll_cnt_init(int size);
-void ll_cnt_pop(struct LL_status *status, int pop_num);
-void ll_cnt_push(struct LL_status *status);
-int ll_next_pos(const struct LL_status *status, const int origin_pos);
-int ll_get_cidx(const struct LL_status *status, const int target_idx);
-void ll_delete(struct LL_status *status);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -112,23 +98,6 @@ struct REPORT
 	int*Inst_per_thread;
 };
 
-struct CA_status
-{
-	int size;
-	int head;
-	int occupied;
-};
-
-struct LL_status
-{
-	int head;
-	int* next;
-	int* prev;
-	int tail;
-
-	int size;
-	int occupied;
-};
 
 struct INST//instructrion
 {

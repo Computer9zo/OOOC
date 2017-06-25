@@ -79,7 +79,7 @@ struct ROB_ARR ROB_create(int size_of_queue)
 {
 	struct ROB_ARR result;
 	result.rob = (struct ROB*)calloc(size_of_queue, sizeof(struct ROB));
-	result.ll = ll_cnt_init(size_of_queue);
+	result.ll = LL_create(size_of_queue);
 
 	if ( (result.rob == NULL) || (result.ll.next == NULL) || (result.ll.prev = NULL) ) { result.ll.size = 0; }
 
@@ -88,14 +88,14 @@ struct ROB_ARR ROB_create(int size_of_queue)
 void ROB_delete(struct ROB_ARR rob_arr)
 {
 	free(rob_arr.rob);
-	ll_delete(&(rob_arr.ll));
+	LL_delete(&(rob_arr.ll));
 }
 
 struct LSQ_ARR LSQ_create(int size_of_queue)
 {
 	struct LSQ_ARR result;
 	result.lsq = (struct LSQ*)calloc(size_of_queue, sizeof(struct LSQ));
-	result.ll = ll_cnt_init(size_of_queue);
+	result.ll = LL_create(size_of_queue);
 
 	if (result.lsq == NULL) { result.ll.size = 0; }
 
@@ -104,7 +104,7 @@ struct LSQ_ARR LSQ_create(int size_of_queue)
 void LSQ_delete(struct LSQ_ARR lsq_arr)
 {
 	free(lsq_arr.lsq);
-	ll_delete(&(lsq_arr.ll));
+	LL_delete(&(lsq_arr.ll));
 }
 
 void INST_printer(const struct INST* printed)
@@ -144,13 +144,13 @@ void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 	if (printed->is_valid)
 	{
 		// printf("ROB%-5d", ll_get_cidx(printed->rob_dest, rob_status) + 1);
-		printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest) + 1);
+		printf("ROB%-5d", LL_get_cidx(rob_status, printed->rob_dest) + 1);
 		
 		if (printed->oprd_1.state == V){printf("V     ");}
-		else { printf("Q:%-3d ", ll_get_cidx(rob_status, printed->oprd_1.data.q) + 1); }
+		else { printf("Q:%-3d ", LL_get_cidx(rob_status, printed->oprd_1.data.q) + 1); }
 		
 		if (printed->oprd_2.state == V) { printf("V     "); }
-		else { printf("Q:%-3d ", ll_get_cidx(rob_status, printed->oprd_2.data.q) + 1); }
+		else { printf("Q:%-3d ", LL_get_cidx(rob_status, printed->oprd_2.data.q) + 1); }
 
 		printf("left%2d", printed->time_left);
 	}
@@ -170,7 +170,7 @@ void ROB_printer(const struct ROB* printed)
 void LSQ_printer(const struct LSQ* printed, const struct LL_status* rob_status)
 {
 	printf("%-10s", instruction_name[printed->opcode]);
-	printf("ROB%-5d ", ll_get_cidx(rob_status, printed->rob_dest) + 1);
+	printf("ROB%-5d ", LL_get_cidx(rob_status, printed->rob_dest) + 1);
 	printf("addr%-9X ", printed->address);
 	printf("T%-2d", printed->time);
 	printf(" %c", (printed->status == C) ? 'C' : 'P');
@@ -300,9 +300,9 @@ void RS_reporter(const struct RS* printed, const struct ROB_ARR* rob)
 	const struct LL_status* rob_status = &(rob->ll);
 	if (printed->is_valid)
 	{
-		printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest)+1);
-		(printed->oprd_1.state == V) ? printf("V") : printf("%5d", ll_get_cidx(rob_status, printed->oprd_1.data.q) + 1);
-		(printed->oprd_2.state == V) ? printf("  V  ") : printf("%5d", ll_get_cidx(rob_status, printed->oprd_2.data.q) + 1);
+		printf("ROB%-5d", LL_get_cidx(rob_status, printed->rob_dest)+1);
+		(printed->oprd_1.state == V) ? printf("V") : printf("%5d", LL_get_cidx(rob_status, printed->oprd_1.data.q) + 1);
+		(printed->oprd_2.state == V) ? printf("  V  ") : printf("%5d", LL_get_cidx(rob_status, printed->oprd_2.data.q) + 1);
 		printf("T%d", rob->rob[printed->rob_dest].inst_num);
 	}
 	else
@@ -317,7 +317,7 @@ void LSQ_reporter(const struct LSQ* printed, const struct ROB_ARR* rob)
 {
 	const struct LL_status* rob_status = &(rob->ll);
 	printf("%c  ", (printed->opcode == MemRead) ? 'L' : 'S');
-	printf("ROB%-5d", ll_get_cidx(rob_status, printed->rob_dest) + 1);
+	printf("ROB%-5d", LL_get_cidx(rob_status, printed->rob_dest) + 1);
 	if (printed->address < 0) 
 	{
 		printf("%9X", 0);
@@ -411,94 +411,3 @@ void REPORT_fprinter(const struct REPORT* printed, FILE* fileID)
 }
 
 
-//for ca using
-void ca_cnt_push(struct CA_status *status)
-{
-	(*status).occupied++;
-}
-
-void ca_cnt_pop(struct CA_status *status)
-{
-	(*status).head = ((*status).head + 1) % (*status).size;
-	(*status).occupied--;
-}
-
-int ca_next_pos(struct CA_status *status)
-{
-	return ( (*status).head + (*status).occupied ) % (*status).size ;
-}
-
-int ca_get_cidx(int idx, struct CA_status *status)
-{
-	return ( idx - (*status).head + (*status).size ) % (*status).size;
-}
-
-struct LL_status ll_cnt_init(int size)
-{
-	struct LL_status result;
-	result.head = 0;
-	result.tail = 0;
-	result.occupied = 0;
-	result.size = size;
-	result.next = (int*)calloc(size, sizeof(int));
-	result.prev = (int*)calloc(size, sizeof(int));
-	if (result.next == NULL || result.prev == NULL) { result.size = 0; return result; }
-
-	for (int i = 0; i<result.size; ++i){
-		result.next[i] = i + 1;
-		result.prev[i] = i - 1;
-	}
-	result.next[result.size -1] = 0;
-	result.prev[0] = size-1;
-
-	return result;
-}
-
-void ll_cnt_pop(struct LL_status *status, int pop_num)
-{
-	//만약 머리가 빠졌다면, 다음 머리는 현재 머리 바로 뒤의 원소
-	if (status->head == pop_num) {
-		status->head = status->next[pop_num];
-	}
-	//전단계의 원소의 next를 현재 원소의 next로 다음 단계의 prev를 현재 원소의 prev로
-	status->next[status->prev[pop_num]] = status->next[pop_num];
-	status->prev[status->next[pop_num]] = status->prev[pop_num];
-
-	//현재 원소는 맨 끝의 원소 뒤에 붙이고, 0을 가르키게 한다.
-	status->next[status->prev[status->head]] = pop_num;
-	status->prev[pop_num] = status->prev[status->head];
-	status->next[pop_num] = status->head;
-	status->prev[status->head] = pop_num;
-
-	//그리고 점유를 하나 뺀다
-	--(status->occupied);
-}
-
-void ll_cnt_push(struct LL_status *status)
-{
-	++(status->occupied);
-	status->tail = status->next[status->tail];
-}
-
-int ll_next_pos(const struct LL_status *status, const int origin_pos)
-{
-	return status->next[origin_pos];
-}
-
-int ll_get_cidx(const struct LL_status *status, const int target_idx)
-{
-	int idx;
-	int ptr = status->head;
-	for (idx = 0; idx < status->size; ++idx){
-		if (ptr == target_idx) {
-			break;
-		}
-		ptr = status->next[ptr];
-	}
-	return idx;
-}
-void ll_delete(struct LL_status *status)
-{
-	free(status->next);
-	free(status->prev);
-}
