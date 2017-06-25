@@ -260,7 +260,7 @@ void ROB_arr_printer(const struct ROB_ARR *rob)
 		}
 		else
 		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
-			printf("                                   ");
+			printf("                                 ");
 		}
 
 		if (idx % DUMP_WIDTH == DUMP_WIDTH - 1) { printf("|\n"); }//줄바꿈을 위한 구문

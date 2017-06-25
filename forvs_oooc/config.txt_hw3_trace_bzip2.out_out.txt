@@ -1,0 +1,6 @@
+Cycles         1
+IPC            -848993460.000000
+Total Insts    -848993460
+IntAlu         0
+MemRead        0
+MemWrite       0
