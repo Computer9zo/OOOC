@@ -154,8 +154,14 @@ void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 
 		printf("left%2d", printed->time_left);
 	}
+	else if (printed->is_completed_this_cycle)
+	{
+		printf("            XX            ");
+	}
 	else
+	{
 		printf("                          ");
+	}
 }
 
 void ROB_printer(const struct ROB* printed)
@@ -169,7 +175,7 @@ void ROB_printer(const struct ROB* printed)
 
 void LSQ_printer(const struct LSQ* printed, const struct LL_status* rob_status)
 {
-	printf("%-10s", instruction_name[printed->opcode]);
+	printf("%c ", (printed->opcode == 1) ? 'R' : 'W');
 	printf("ROB%-5d ", LL_get_cidx(rob_status, printed->rob_dest) + 1);
 	printf("addr %8X ", printed->address);
 	printf("T%-2d", printed->time);
@@ -275,20 +281,23 @@ void LSQ_arr_printer(const struct LSQ_ARR *lsq, const struct ROB_ARR *rob)
 	const struct LSQ *lsq_idx = NULL;
 	int idx;
 	int ptr = lsq->ll.head;
+	lsq_idx = (lsq->lsq) + (ptr);
 	for (idx = 0; idx < lsq->ll.size; ++idx)
 	{
-		printf("| LSQ%-4d: ", idx + 1);
+		//printf("| LSQ%-4d: ", idx + 1);
+		printf("|%3d:", lsq->ll.prev[ptr]);
+		printf("%3d:", ptr);
+		printf("%3d: ", lsq->ll.next[ptr]);
 		if (idx <  lsq->ll.occupied)
 		{//데이터가 있으면 출력한다.
-			lsq_idx = (lsq->lsq) + (ptr);
-			ptr = lsq->ll.next[ptr];
 			LSQ_printer(lsq_idx,&(rob->ll));
 		}
 		else
 		{//실제 원소 개수 이상의 공간은 쓰레기값이므로 공백을 출력한다.
-			printf("                                   ");
+			printf("                              ");
 		}
-
+		ptr = lsq->ll.next[ptr];
+		lsq_idx = (lsq->lsq) + (ptr);
 		if (idx % DUMP_WIDTH == DUMP_WIDTH - 1) { printf("|\n"); }//줄바꿈을 위한 구문
 	}
 	if (idx % DUMP_WIDTH != 0) { printf("\n"); }//DUMP_WIDTH 배수가 아닌 경우. 구분을 위해 줄바꿈을 한번 해준다.
