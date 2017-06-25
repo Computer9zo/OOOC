@@ -81,7 +81,7 @@ struct ROB_ARR ROB_create(int size_of_queue)
 	result.rob = (struct ROB*)calloc(size_of_queue, sizeof(struct ROB));
 	result.ll = LL_create(size_of_queue);
 
-	if ( (result.rob == NULL) || (result.ll.next == NULL) || (result.ll.prev = NULL) ) { result.ll.size = 0; }
+	if ( (result.rob == NULL) || (result.ll.next == NULL) || (result.ll.prev == NULL) ) { result.ll.size = 0; }
 
 	return result;
 }
