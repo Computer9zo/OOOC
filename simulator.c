@@ -949,7 +949,7 @@ void commit(struct simulator_data* simul)
 	//printf("b");
 	bool* thread_commit = calloc(simul->info.num_of_inst,sizeof(bool));
 	//printf("b");
-	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
+	for (int i = 0; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
