@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 //배열 내 순차가 아닌 방식의 Iterator 구현에 필요한 함수와 구조를 담은 헤더
 //

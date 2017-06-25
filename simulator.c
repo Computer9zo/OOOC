@@ -478,13 +478,14 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].rs_dest = rs_idx;
 			rob->rob[rob->ll.tail].status = P;
 			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
-
+			rob->rob[rob->ll.tail].lsq_source = lsq->ll.prev[lsq->ll.tail];
+			
 			//TODO: Check is this right?
-			rob->rob[rob->ll.tail].lsq_source = lsq->ll.tail;
-
 			(*rs_ele).rob_dest = rob->ll.tail;
 			LL_cnt_push(&simul->core.rob->ll);
 			--(simul->core.info.rob.remain);
+
+			
 
 			// Modify RAT status
 			if (fq_ele->dest != 0)

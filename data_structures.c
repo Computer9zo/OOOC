@@ -171,7 +171,7 @@ void LSQ_printer(const struct LSQ* printed, const struct LL_status* rob_status)
 {
 	printf("%-10s", instruction_name[printed->opcode]);
 	printf("ROB%-5d ", LL_get_cidx(rob_status, printed->rob_dest) + 1);
-	printf("addr%09X ", printed->address);
+	printf("addr %8X ", printed->address);
 	printf("T%-2d", printed->time);
 	printf(" %c", (printed->status == C) ? 'C' : 'P');
 }
