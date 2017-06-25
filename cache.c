@@ -220,7 +220,7 @@ void **cache_initializer(struct cache_config *config)
 	int set_numbers = (*config).set_numbers;
 	
 	// Initializing cache_controller *cache_cont 
-	struct cons_cache_controller *cache_cont = malloc(sizeof(struct dummy) + ((sizeof(int) * way_numbers * set_numbers)));
+	struct cons_cache_controller *cache_cont = malloc(sizeof(struct dummy) + ((sizeof(int) * way_numbers * set_numbers)) + 1024);
 	if (cache_cont == NULL)
 	{
 		printf("ERROR: cache.c - cache_cont malloc failed\n");
@@ -259,7 +259,7 @@ void **cache_initializer(struct cache_config *config)
 
 	printf("cache - Trying malloc of cache...\n");
 	// Initializing cache
-	struct cons_cache *cache = malloc((sizeof(int) * set_numbers * way_numbers * 3));
+	struct cons_cache *cache = malloc((sizeof(int) * set_numbers * way_numbers * 3) + 1024);
 	int (*cash)[way_numbers][3] = (int (*)[way_numbers][3]) (*cache).data; 
 	printf("cache - malloc has been completed\n");
 	printf("cache - proceeding to initialized dynamically allocated cache\n");
@@ -276,7 +276,7 @@ void **cache_initializer(struct cache_config *config)
 	printf("cache - initialization has been completed\n");
 	printf("stat - trying malloc\n");
 	// Initializing statistics *stat
-	struct statistics *stat = malloc(sizeof(struct statistics));
+	struct statistics *stat = malloc(sizeof(struct statistics) + 1024);
 	printf("stat - malloc has been completed\n");
 	printf("stat - Start initializing stat\n");
 	if (stat == NULL)

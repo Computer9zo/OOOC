@@ -138,22 +138,19 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	{	
 		//TODO: Check here ! Core logic
 		//cycle plus
+		printf("Current cycle: %d\n", simul_data.info.cycle);
 		++(simul_data.info.cycle);
 
 		//각 명령의 실행 횟수를 초기화한다.
 		remains_update(&simul_data);
-		printf("A");
 		//Loop1
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
-		printf("t");
-		//lsq_ex_and_retire(&simul_data);
-		//lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
-		//lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
-		printf("t");
+		lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+		lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
 		//issue();
 		
 		
@@ -163,10 +160,8 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		decode_and_value_payback(&simul_data);
 		// Fetch instructions
 		fetch(threads,&simul_data);
-		printf("t");
 		// Dump
 		disp_debug(&simul_data,(*config).Dump);
-		printf("t");
 	}
 
 	// Simulation finished
@@ -334,7 +329,7 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 		{//malloc error
 			return 1;
 		}
-		free(cache_object);
+		// free(cache_object); TODO: why?.... 
 	}
 	
 }
@@ -641,8 +636,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	int time;
 
 	bool are_there_dangerous_stores = false;
-	int* older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
-		//[lsq_arr[0].ll.occupied];	
+	int older_stores[(*lsq_arr).ll.occupied];
 	int older_stores_num = 0;
 	//printf("te");
 	
@@ -653,7 +647,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	lsq_ptr = (*lsq_arr).lsq + lsq_ptr_idx;
 	if (is_perfect_cache)
 	{
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			// op = (*lsq_arr[i].lsq).opcode;
 			op = (*lsq_ptr).opcode;
@@ -712,7 +706,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	else // Not perfect cache
 	{
 		bool is_hit;
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			// op = (*lsq_arr[i].lsq).opcode;
 			op = (*lsq_ptr).opcode;
@@ -805,12 +799,6 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 					
 		}
 	}	
-	//printf("te");
-	if (lsq_arr->ll.occupied > 0)
-	{
-		free(older_stores);
-	}
-	//printf("te");
 }
 
 void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
@@ -821,9 +809,9 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 	struct statistics *stat = (*simul).cache.stat;
 
 	int i;
-	int lsq_occupied = lsq_arr[0].ll.occupied;
-
-	int* older_stores=calloc(lsq_arr->ll.occupied, sizeof(int));
+	int lsq_occupied = (*lsq_arr).ll.occupied;
+	
+	int older_stores[(*lsq_arr).ll.occupied];
 	int older_stores_num = 0;
 
 	int lsq_ptr_idx = (*lsq_arr).ll.head;
@@ -881,10 +869,6 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 		lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
-	if (lsq_arr->ll.occupied > 0)
-	{
-		free(older_stores);
-	}
 }
 
 
@@ -896,13 +880,13 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 	//if (rs_ele->time_left == 0)
 	//{//만약 실행 대기중이라면, 
 		
-		if ((rs_ele->opcode = IntAlu)) \
+		if (rs_ele->opcode == IntAlu) 
 		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
 		// TODO: 아래 두 케이스들을 체크 바람. 
 		// SOME MISS, i fix it.
-		else if (((*rs_ele).opcode = MemRead)) // MemRead
+		else if ((*rs_ele).opcode == MemRead) // MemRead
 		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
 			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
 			rs_retire(rs_ele, rob_ele);
@@ -994,9 +978,7 @@ void commit(struct simulator_data* simul)
 	
 	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크하기 위한 함수
 	bool commit_done = false;
-	printf("b");
-	bool* thread_commit = calloc(simul->info.num_of_inst,sizeof(bool));
-	printf("b");
+	bool* thread_commit = malloc(simul->info.num_of_inst * sizeof(bool));
 	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
 
 	//start from head
@@ -1054,6 +1036,7 @@ void commit(struct simulator_data* simul)
 		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
 	}
+	free(thread_commit);
 }
 
 void wait(void)
