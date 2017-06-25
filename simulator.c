@@ -10,7 +10,6 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 struct cons_remaining
 {
 	int remain;//현재 남은 빈 횟수 
-	int blank;//현재 남은 빈 공간
 	int width;//한 사이클에 최대한 수행할 수 있는 양
 };
 
@@ -55,9 +54,9 @@ struct simulator_data
 	}info;
 };
 
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+void lsq_issue(struct simulator_data *simul);
 
-void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr);
+void lsq_exe(struct simulator_data *simul);
 
 int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thread_num, struct simulator_data* out_simulator);
 
@@ -104,16 +103,6 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
 void disp_debug(struct simulator_data* simul,int dump);
 
-
-void lsq_push(struct simulator_data* simul);
-void lsq_pop(struct simulator_data* simul, int pop_idx);
-void rob_push(struct simulator_data* simul);
-void rob_pop(struct simulator_data* simul, int pop_idx);
-void fq_push(struct simulator_data* simul);
-void fq_pop(struct simulator_data* simul);
-
-
-
 void wait(void);
 
 
@@ -149,12 +138,10 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 
 		commit(&simul_data);
 		ex_and_issue(&simul_data);
-		lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
-		lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
 		//issue();
+		lsq_exe(&simul_data);
+		lsq_issue(&simul_data);
 		
-		
-
 		//Loop2
 		//RS를 전부 돌면서 decode / value_feeding , is_completed_this_cycle array 도 초기화.
 		decode_and_value_payback(&simul_data);
@@ -264,37 +251,32 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 			return 1;
 		}
 	}
-	
-	out_simulator->core.info.fq.blank = out_simulator->core.fq->ca.size;
+
 	out_simulator->core.info.fq.width = (*config).Width;
 	out_simulator->core.info.fq.remain = -1;//it not init in this time. it will init start of every cycle
 
-	out_simulator->core.info.rob.blank = out_simulator->core.rob->ll.size;
 	out_simulator->core.info.rob.width = (*config).Width;
 	out_simulator->core.info.rob.remain = -1;//it not init in this time. it will init start of every cycle
 
-	out_simulator->core.info.lsq.blank = out_simulator->core.lsq->ll.size;
 	out_simulator->core.info.lsq.width = (*config).Width;
 	out_simulator->core.info.lsq.remain = -1;//it not init in this time. it will init start of every cycle
 
 	if (config->Width > 4)
 	{
-		out_simulator->core.info.load.blank = 3;//메모리 패스 초기값 설정
-		out_simulator->core.info.write.blank = 2;
+		out_simulator->core.info.load.width = 3;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.width = 2;
 	}
 	else if (config->Width > 1)
 	{
-		out_simulator->core.info.load.blank = 2;//메모리 패스 초기값 설정
-		out_simulator->core.info.write.blank = 1;
+		out_simulator->core.info.load.width = 2;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.width = 1;
 	}
 	else
 	{
-		out_simulator->core.info.load.blank = 1;//메모리 패스 초기값 설정
-		out_simulator->core.info.write.blank = 1;
+		out_simulator->core.info.load.width = 1;//메모리 패스 초기값 설정
+		out_simulator->core.info.write.width = 1;
 	}
-	out_simulator->core.info.load.width = out_simulator->core.info.load.blank;
 	out_simulator->core.info.load.remain = -1;//it not init in this time. it will init start of every cycle
-	out_simulator->core.info.write.width = out_simulator->core.info.write.blank;
 	out_simulator->core.info.write.remain = -1;//it not init in this time. it will init start of every cycle
 
 	out_simulator->core.info.current_fetch_inst = 0;
@@ -331,7 +313,7 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 		}
 		// free(cache_object); TODO: why?.... 
 	}
-	
+	return 0;
 }
 
 bool is_work_left(struct THREAD* threads, struct simulator_data* simulator)
@@ -348,20 +330,18 @@ bool is_work_left(struct THREAD* threads, struct simulator_data* simulator)
 	return is_work_left;
 }
 
-void remains_update_ele(struct cons_remaining* remaining)
-{
-	remaining->remain =
-		(remaining->blank) < (remaining->width) ?
-		(remaining->blank) : (remaining->width);
-}
-
 void remains_update(struct simulator_data* simulator)
 {
-	remains_update_ele(&(simulator->core.info.fq));
-	remains_update_ele(&(simulator->core.info.rob));
-	remains_update_ele(&(simulator->core.info.lsq));
-	remains_update_ele(&(simulator->core.info.load));
-	remains_update_ele(&(simulator->core.info.write));
+	simulator->core.info.fq.remain =
+		(simulator->core.fq->ca.size - simulator->core.fq->ca.occupied) < simulator->core.info.fq.width ?
+		(simulator->core.fq->ca.size - simulator->core.fq->ca.occupied) : simulator->core.info.fq.width;
+	simulator->core.info.rob.remain =
+		(simulator->core.rob->ll.size - simulator->core.rob->ll.occupied) < simulator->core.info.rob.width ?
+		(simulator->core.rob->ll.size - simulator->core.rob->ll.occupied) : simulator->core.info.rob.width;
+	simulator->core.info.lsq.remain =
+		(simulator->core.lsq->ll.size - simulator->core.lsq->ll.occupied) < simulator->core.info.lsq.width ?
+		(simulator->core.lsq->ll.size - simulator->core.lsq->ll.occupied) : simulator->core.info.lsq.width;
+
 }
 
 void fetch(struct THREAD *inst, struct simulator_data* simul)
@@ -378,7 +358,7 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 		while ( simul->core.info.fq.remain>0 )
 		{
 			//대입
-			fq_ele = (simul->core.fq->fq) + (ca_next_pos(&(simul->core.fq->ca)));
+			fq_ele = (simul->core.fq->fq) + (CA_next_pos(&(simul->core.fq->ca)));
 			current_inst = (current_thread->instruction) + (current_thread->pc);
 
 			fq_ele->opcode = current_inst->opcode;
@@ -388,7 +368,8 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 			fq_ele->inst_num = (simul->core.info.current_fetch_inst);
 
 			//수량 갱신
-			fq_push(simul);
+			CA_cnt_push(&simul->core.fq->ca);
+			--(simul->core.info.fq.remain);
 			++(current_thread->pc);
 
 			//다음 current_thread 정하기
@@ -408,45 +389,6 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 	}
 }
 
-void lsq_push(struct simulator_data* simul)
-{
-	ll_cnt_push(&(simul->core.lsq->ll));
-	--(simul->core.info.lsq.blank);
-	--(simul->core.info.lsq.remain);
-}
-
-void lsq_pop(struct simulator_data* simul, int pop_idx)
-{
-	ll_cnt_pop(&(simul->core.lsq->ll), pop_idx);
-	++(simul->core.info.lsq.blank);
-}
-
-void rob_push(struct simulator_data* simul)
-{
-	ll_cnt_push(&(simul->core.rob->ll));
-	--(simul->core.info.rob.blank);
-	--(simul->core.info.rob.remain);
-}
-
-void rob_pop(struct simulator_data* simul, int pop_idx)
-{
-	ll_cnt_pop(&(simul->core.rob->ll), pop_idx);
-	++(simul->core.info.rob.blank);
-}
-
-void fq_push(struct simulator_data* simul)
-{
-	ca_cnt_push(&(simul->core.fq->ca));
-	--(simul->core.info.fq.blank);
-	--(simul->core.info.fq.remain);
-}
-
-void fq_pop(struct simulator_data* simul)
-{
-	ca_cnt_pop(&(simul->core.fq->ca));
-	++(simul->core.info.fq.blank);
-}
-
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain)
 {
 	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) rob h
@@ -459,7 +401,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 		{//int alu가 아니라면, lsq에 여유가 있는지를 검사한다.
 
 		 // Element has been poped from Fetch Queue
-			fq_pop(simul);
+			CA_cnt_pop(&simul->core.fq->ca);
 
 			// Count Instruction number
 			++(simul->info.cnt_Insts);
@@ -525,8 +467,8 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				lsq->lsq[lsq->ll.tail].time = -1;
 				lsq->lsq[lsq->ll.tail].status = P;
 				rs_ele->lsq_dest = lsq->ll.tail;
-				lsq_push(simul);
-
+				LL_cnt_push(&simul->core.lsq->ll);
+				--(simul->core.info.lsq.remain);
 				break;
 			}
 
@@ -541,7 +483,8 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].lsq_source = lsq->ll.tail;
 
 			(*rs_ele).rob_dest = rob->ll.tail;
-			rob_push(simul);
+			LL_cnt_push(&simul->core.rob->ll);
+			--(simul->core.info.rob.remain);
 
 			// Modify RAT status
 			if (fq_ele->dest != 0)
@@ -617,9 +560,11 @@ void issue(struct RS *rs_ele, int* issue_remain)
 }
 
 // TODO: LSQ 관련 함수들 만들
-void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+void lsq_issue(struct simulator_data *simul)
 {
-	
+	struct LSQ_ARR *lsq_arr = simul->core.lsq;
+	struct ROB_ARR *rob_arr = simul->core.rob;
+
 	int read_port = simul->core.info.load.width;
 	int write_port = simul->core.info.write.width;
 
@@ -636,7 +581,13 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 	int time;
 
 	bool are_there_dangerous_stores = false;
-	int older_stores[(*lsq_arr).ll.occupied];
+
+	int* older_stores = NULL;
+	if (lsq_arr->ll.occupied > 0)
+	{
+		older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+	}
+		//[lsq_arr[0].ll.occupied];	
 	int older_stores_num = 0;
 	//printf("te");
 	
@@ -698,7 +649,7 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				}
 			}
 
-			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
@@ -794,24 +745,33 @@ void lsq_issue(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB
 				}
 			}
 
-			lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+			lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 			lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 					
 		}
 	}	
+	free(older_stores);
+	//printf("te");
 }
 
-void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_ARR *rob_arr)
+void lsq_exe(struct simulator_data *simul)
 {
+	struct LSQ_ARR *lsq_arr = simul->core.lsq;
+	struct ROB_ARR *rob_arr = simul->core.rob;
+
 	// If time == 0, change the status of corresponding entry in ROB to C
 	struct cons_cache_controller *cache_cont = (*simul).cache.cont;
 	struct cons_cache *cache = (*simul).cache.cache;
 	struct statistics *stat = (*simul).cache.stat;
 
 	int i;
-	int lsq_occupied = (*lsq_arr).ll.occupied;
-	
-	int older_stores[(*lsq_arr).ll.occupied];
+	int lsq_occupied = lsq_arr[0].ll.occupied;
+
+	int* older_stores = NULL;
+	if (lsq_arr->ll.occupied > 0)
+	{
+		older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+	}
 	int older_stores_num = 0;
 
 	int lsq_ptr_idx = (*lsq_arr).ll.head;
@@ -866,9 +826,10 @@ void lsq_exe(struct simulator_data *simul, struct LSQ_ARR *lsq_arr, struct ROB_A
 			(*lsq_ptr).time--;
 		}
 
-		lsq_ptr_idx = ll_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
+		lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
+	free(older_stores);
 }
 
 
@@ -888,13 +849,13 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 		// SOME MISS, i fix it.
 		else if ((*rs_ele).opcode == MemRead) // MemRead
 		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
-			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
+			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_2.data.v;
 			rs_retire(rs_ele, rob_ele);
 			(*rob_ele).status = P;
 		}
 		else // MemWrite
 		{//Store 라면 ROB의 해당 entry를 C로 만들고 LSQ에서 해당 entry에  주소를 할당한다
-			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
+			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_2.data.v;
 			rs_retire(rs_ele, rob_ele);
 
 		}
@@ -947,7 +908,7 @@ void ex_and_issue(struct simulator_data* simul)
 		}
 
 		//다음 원소로 포인터를 이동한다
-		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr_idx = LL_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
 
 	}
@@ -978,13 +939,15 @@ void commit(struct simulator_data* simul)
 	
 	//그 스레드의 커밋이 끝났는지 아직 계속할 수 있는 지 체크하기 위한 함수
 	bool commit_done = false;
-	bool* thread_commit = malloc(simul->info.num_of_inst * sizeof(bool));
-	for (int i = 1; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
+	//printf("b");
+	bool* thread_commit = calloc(simul->info.num_of_inst,sizeof(bool));
+	//printf("b");
+	for (int i = 0; i < simul->info.num_of_inst; ++i) { thread_commit[i] = true; }
 
 	//start from head
 	rob_ptr_idx = rob->ll.head;
 	rob_ptr = (rob->rob)+(rob_ptr_idx);
-	for (int i = 0; i < simul->core.rob->ll.occupied && remain_commit && !commit_done> 0; ++i)
+	for (int i = 0; i < simul->core.rob->ll.occupied && remain_commit > 0 && !commit_done; ++i)
 	{//rob 내의 모든 원소에 대해서만 검사하면 됨. 또한 커밋 횟수가 남아있을때만 검사하면 됨. 또한 모든 커밋이 끝나지 않았을때 검사하면 됨.
 		if (thread_commit[rob_ptr->inst_num])
 		{//아직 해당 inst의 커밋이 끝나지 않았다면,
@@ -992,28 +955,28 @@ void commit(struct simulator_data* simul)
 			{
 			case C:
 				rat[rob_ptr->inst_num].rat[rob_ptr->dest].RF_valid = true;
-				ll_cnt_pop(&(rob->ll), rob_ptr_idx);
+				LL_cnt_pop(&(rob->ll), rob_ptr_idx);
 				--remain_commit;
 				
 				// Actual cache write happens
 				if (rob_ptr->opcode == MemWrite)
 				{
-					if((*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].was_hit == HIT)
+					if((*lsq_arr).lsq[rob_ptr->lsq_source].was_hit == HIT)
 					{
 						// If it was HIT, just write 
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 					}
 					else
 					{
 						// If it was MISS, fill cache first and the write
-						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[ll_get_cidx(&(*lsq_arr).ll, rob_ptr->lsq_source)].address);
+						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
+						cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 
 					}
 				}
 				
 				// Remove from LSQ
-				ll_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
+				LL_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
 
 				//if (rob_ptr->opcode == MemWrite)
 				//{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
@@ -1033,7 +996,7 @@ void commit(struct simulator_data* simul)
 			}
 		}
 		//다음 ROB로 포인터를 옮긴다
-		rob_ptr_idx = ll_next_pos(&(rob->ll), rob_ptr_idx);
+		rob_ptr_idx = LL_next_pos(&(rob->ll), rob_ptr_idx);
 		rob_ptr = (rob->rob) + (rob_ptr_idx);
 	}
 	free(thread_commit);
