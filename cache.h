@@ -70,7 +70,7 @@ struct statistics
 
 struct cons_cache
 {
-	int ***data;
+	int data[0];
 };
 
 struct cons_cache_controller
@@ -96,7 +96,7 @@ struct cons_cache_controller
 	int index_filter_bits;
 
 	// LRU list for True LRU. For struct hack
-	int **LRU;
+	int LRU[0];
 };
 
 struct dummy // For struct hack of cons_cache_controller
