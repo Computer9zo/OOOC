@@ -910,7 +910,7 @@ void ex_and_issue(struct simulator_data* simul)
 			
 			rs_ele = (rs->rs) + (rob_ptr->rs_dest);
 
-			if (rs_ele->time_left == 0)
+			if (rs_ele->time_left == 0 && rs_ele->is_valid)
 			{//만약 Issue 되었다면
 				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
