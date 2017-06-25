@@ -43,4 +43,4 @@ int LL_cnt_push(struct LL_status *status);
 int LL_next_pos(const struct LL_status *status, const int origin_pos);
 int LL_get_cidx(const struct LL_status *status, const int target_idx);
 
-#endif // ! __ITERATOR__
+#endif // ! __ITERATOR__//
