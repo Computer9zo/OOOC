@@ -851,7 +851,7 @@ void lsq_exe(struct simulator_data *simul)
 
 
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
-
+{
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
 
