@@ -334,7 +334,7 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 		}
 		free(cache_object);
 	}
-	
+	return 0;
 }
 
 bool is_work_left(struct THREAD* threads, struct simulator_data* simulator)
@@ -641,7 +641,12 @@ void lsq_issue(struct simulator_data *simul)
 	int time;
 
 	bool are_there_dangerous_stores = false;
-	int* older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+
+	int* older_stores = NULL;
+	if (lsq_arr->ll.occupied > 0)
+	{
+		older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+	}
 		//[lsq_arr[0].ll.occupied];	
 	int older_stores_num = 0;
 	//printf("te");
@@ -653,7 +658,7 @@ void lsq_issue(struct simulator_data *simul)
 	lsq_ptr = (*lsq_arr).lsq + lsq_ptr_idx;
 	if (is_perfect_cache)
 	{
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			// op = (*lsq_arr[i].lsq).opcode;
 			op = (*lsq_ptr).opcode;
@@ -712,7 +717,7 @@ void lsq_issue(struct simulator_data *simul)
 	else // Not perfect cache
 	{
 		bool is_hit;
-		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.size))
+		while ((read_port > 0 || write_port > 0) && (i < (*lsq_arr).ll.occupied))
 		{
 			// op = (*lsq_arr[i].lsq).opcode;
 			op = (*lsq_ptr).opcode;
@@ -805,11 +810,7 @@ void lsq_issue(struct simulator_data *simul)
 					
 		}
 	}	
-	//printf("te");
-	if (lsq_arr->ll.occupied > 0)
-	{
-		free(older_stores);
-	}
+	free(older_stores);
 	//printf("te");
 }
 
@@ -826,7 +827,11 @@ void lsq_exe(struct simulator_data *simul)
 	int i;
 	int lsq_occupied = lsq_arr[0].ll.occupied;
 
-	int* older_stores=calloc(lsq_arr->ll.occupied, sizeof(int));
+	int* older_stores = NULL;
+	if (lsq_arr->ll.occupied > 0)
+	{
+		older_stores = calloc(lsq_arr->ll.occupied, sizeof(int));
+	}
 	int older_stores_num = 0;
 
 	int lsq_ptr_idx = (*lsq_arr).ll.head;
@@ -884,10 +889,9 @@ void lsq_exe(struct simulator_data *simul)
 		lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
 		lsq_ptr = (*lsq_arr).lsq + (lsq_ptr_idx);
 	}
-	if (lsq_arr->ll.occupied > 0)
-	{
-		free(older_stores);
-	}
+
+	free(older_stores);
+
 }
 
 
@@ -899,13 +903,13 @@ void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, st
 	//if (rs_ele->time_left == 0)
 	//{//만약 실행 대기중이라면, 
 		
-		if ((rs_ele->opcode = IntAlu)) \
+		if ((rs_ele->opcode == IntAlu))
 		{//load나 store가 아니라면 retire의 작업을 한다. RS를 비운 다음 ROB를 C 상태로 바꾼다.
 			rs_retire(rs_ele, rob_ele);
 		}
 		// TODO: 아래 두 케이스들을 체크 바람. 
 		// SOME MISS, i fix it.
-		else if (((*rs_ele).opcode = MemRead)) // MemRead
+		else if (((*rs_ele).opcode == MemRead)) // MemRead
 		{//Load 라면 LSQ의 대항 entry에다 주소를 주고 retire 한다
 			(*lsq_arr).lsq[(*rs_ele).lsq_dest].address = (*rs_ele).oprd_1.data.v;
 			rs_retire(rs_ele, rob_ele);
