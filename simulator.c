@@ -796,7 +796,7 @@ void lsq_exe(struct simulator_data *simul)
 				cache_filler(cache_cont, cache, stat, (*lsq_ptr).address);
 				cache_writer(cache_cont, cache, (*lsq_ptr).address);
 			}
-			//TODO	
+			LL_cnt_pop(&(*lsq_arr).ll, lsq_ptr_idx);
 		}
 
 		if (((*lsq_ptr).time == 0) && ((*lsq_ptr).status == P)) // Cache access completed and never been commited to ROB
