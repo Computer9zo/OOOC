@@ -630,10 +630,11 @@ void lsq_issue(struct simulator_data *simul)
 				{
 					cache_query(cache_cont, cache, stat, op, addr);
 					// (*lsq_arr[i].lsq).time = 2;
-					(*lsq_ptr).time = 2;
+					// (*lsq_ptr).time = 2;
 					// (*lsq_arr[i].lsq).was_hit = HIT;
 					(*lsq_ptr).was_hit = HIT;
 					// (*rob_arr[(*lsq_arr[i].lsq).rob_dest].rob).status = C;
+					(*lsq_ptr).status = C;
 					(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
 					write_port--;
 					i++;
@@ -712,18 +713,19 @@ void lsq_issue(struct simulator_data *simul)
 					if (is_hit)
 					{
 						// (*lsq_arr[i].lsq).time = 2;
-						(*lsq_ptr).time = 2;
+						// (*lsq_ptr).time = 2;
 						// (*lsq_arr[i].lsq).was_hit = HIT;
 						(*lsq_ptr).was_hit = HIT;
 					}
 					else
 					{
 						 // (*lsq_arr[i].lsq).time = 52;
-						 (*lsq_ptr).time = 52;
+						 // (*lsq_ptr).time = 52;
 						// (*lsq_arr[i].lsq).was_hit = MISS;
 						(*lsq_ptr).was_hit = MISS;
 					}
-
+					
+					(*lsq_ptr).status = C;
 					(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
 
 					older_stores[older_stores_num] = (*lsq_ptr).address;
@@ -784,6 +786,19 @@ void lsq_exe(struct simulator_data *simul)
 			older_stores_num++;
 		}
 
+		if ((*lsq_ptr).time == 0 && ((*lsq_ptr).opcode == MemWrite))
+		{
+			if ((*lsq_ptr).was_hit == HIT)
+			{
+				cache_writer(cache_cont, cache, (*lsq_ptr).address);
+			}
+			else if ((*lsq_ptr).was_hit == MISS)
+			{
+				cache_filler(cache_cont, cache, stat, (*lsq_ptr).address);
+				cache_writer(cache_cont, cache, (*lsq_ptr).address);
+			}
+		}
+
 		if (((*lsq_ptr).time == 0) && ((*lsq_ptr).status == P)) // Cache access completed and never been commited to ROB
 		{
 			if ((*lsq_ptr).opcode == MemRead) // MemRead case
@@ -801,12 +816,6 @@ void lsq_exe(struct simulator_data *simul)
 				(*lsq_ptr).status = C;
 				(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C; // Completed
 			}
-			else if ((*lsq_ptr).opcode == MemWrite)
-			{
-				// Actual cache / memory access of MemWrite takes place when this instruction is vaporized from LSQ. !!	
-				(*lsq_ptr).status = C;
-				(*rob_arr).rob[(*lsq_ptr).rob_dest].status = C;
-			}
 		}
 		else if ((*lsq_ptr).time > 0) // Still executing
 		{
@@ -823,7 +832,14 @@ void lsq_exe(struct simulator_data *simul)
 				}
 			}
 
-			(*lsq_ptr).time--;
+			if ((*lsq_ptr).opcode == MemRead)
+			{
+				(*lsq_ptr).time--;
+			}
+			else if ((*lsq_ptr).opcode == MemWrite && ((*lsq_ptr).time != -1))
+			{
+				(*lsq_ptr).time--;
+			}
 		}
 
 		lsq_ptr_idx = LL_next_pos(&(*lsq_arr).ll, lsq_ptr_idx);
@@ -834,7 +850,7 @@ void lsq_exe(struct simulator_data *simul)
 
 
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul)
-{
+
 	//이미 이슈가 최대 N개까지 가능하기 때문에, ex도 최대 N개까지만 수행된다. 검사필요 없음
 	//ROB 순서로 호출하므로 자동으로 오래된 것 부터 수행한다.
 
@@ -963,14 +979,16 @@ void commit(struct simulator_data* simul)
 				{
 					if((*lsq_arr).lsq[rob_ptr->lsq_source].was_hit == HIT)
 					{
-						// If it was HIT, just write 
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
+						// If it was HIT, issue with 1 cycles
+						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 1; 
+						// cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 					}
 					else
 					{
-						// If it was MISS, fill cache first and the write
-						cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
-						cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
+						// If it was MISS, issue with 51 cycles 
+						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 51;
+						// cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
+						// cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 
 					}
 				}

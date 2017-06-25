@@ -1,4 +1,5 @@
 #include "Iterator.h"
+#include <stdlib.h>
 
 //CA √ ±‚»≠
 struct CA_status CA_create(int size)
