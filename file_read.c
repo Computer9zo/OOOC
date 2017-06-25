@@ -173,7 +173,7 @@ bool char_to_INST(char* buffer, struct INST * out_inst)
 	out_inst->dest = atoi(strtok(NULL, " "));
 	out_inst->oprd_1 = atoi(strtok(NULL, " "));
 	out_inst->oprd_2 = atoi(strtok(NULL, " "));
-	if (out_inst->opcode != IntAlu) { out_inst->oprd_2 = atoi(strtok(NULL, " ")); }
+	if (out_inst->opcode != IntAlu) { out_inst->oprd_2 = strtol(strtok(NULL, " "),NULL,16); }
 
 	return true;
 }
