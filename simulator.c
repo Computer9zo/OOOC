@@ -975,9 +975,11 @@ void commit(struct simulator_data* simul)
 					}
 				}
 				
-				// Remove from LSQ
-				LL_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
-
+				if (rob_ptr->opcode != IntAlu)
+				{
+					// Remove from LSQ
+					LL_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
+				}
 				//if (rob_ptr->opcode == MemWrite)
 				//{//Mem Write의 경우, commit되면 엑세스가 시작되므로, 처리를 별도로 해주어야 한다.
 				//	
