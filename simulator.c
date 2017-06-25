@@ -318,7 +318,7 @@ int simulator_initialize(struct CONFIG *config, struct THREAD* threads, int thre
 
 		struct cache_config cache_config;
 		cache_config.block_size = 32;//need edit
-		cache_config.capacity = config->Cache_size;
+		cache_config.capacity = (config->Cache_size)*1024;
 		cache_config.way_numbers = 8;
 		cache_config.set_numbers = cache_config.capacity/cache_config.block_size/cache_config.way_numbers;
 		
