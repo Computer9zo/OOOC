@@ -18,9 +18,8 @@ void get_tag_and_index(struct cons_cache_controller *cache_cont, int *tag_and_in
 // Declaration of cache_controller
 void update_LRU(struct cons_cache_controller *self, int index, int target_way)
 {
-	int set_numbers = (*self).set_numbers;
 	int way_numbers = (*self).way_numbers;
-	int LRU[set_numbers][way_numbers] = (*self).LRU;
+	int (*LRU)[way_numbers] = (int (*)[way_numbers]) (*self).LRU;
 
 	int i;
 	for (i = 0; i < way_numbers; i++)
@@ -37,9 +36,8 @@ int find_victim(struct cons_cache_controller *self, int index)
 {
 	int victim = 0;
 	int i;
-	int set_numbers = (*self).set_numbers;
 	int way_numbers = (*self).way_numbers;
-	int LRU[set_numbers][way_numbers] = (*self).LRU;
+	int (*LRU)[way_numbers] = (int (*)[way_numbers]) (*self).LRU;
 
 	for (i = 0; i < way_numbers; i++)
 	{
@@ -59,9 +57,8 @@ void cache_write(struct cons_cache_controller *self, struct cons_cache *cache, i
 	get_tag_and_index(self, tag_and_index, addr);
 	int tag = tag_and_index[0];
 	int index = tag_and_index[1];
-	int set_numbers = (*self).set_numbers;
 	int way_numbers = (*self).way_numbers;
-	int cash[set_numbers][way_numbers][3] = (*cache).data;
+	int (*cash)[way_numbers][3] = (int (*)[way_numbers][3]) (*cache).data;
 
 	int target_way = (*self).find_victim(self, index);
 	cash[index][target_way][0] = tag;  // Writing tag
@@ -86,9 +83,8 @@ void cache_fill(struct cons_cache_controller *self, struct cons_cache *cache, st
 	get_tag_and_index(self, tag_and_index, addr);
 	int tag = tag_and_index[0];
 	int index = tag_and_index[1];
-	int set_numbers = (*self).set_numbers;
 	int way_numbers = (*self).way_numbers;
-	int cash[set_numbers][way_numbers][3] = (*cache).data;
+	int (*cash)[way_numbers][3] = (int (*)[way_numbers][3]) (*cache).data;
 
 	int target_way = (*self).find_victim(self, index);
 	if ( cash[index][target_way][2] == 1)
@@ -119,9 +115,8 @@ int search(struct cons_cache_controller *self, struct cons_cache *cache, int add
 	get_tag_and_index(self, tag_and_index, addr);
 	int tag = tag_and_index[0];
 	int index = tag_and_index[1];
-	int set_numbers = (*self).set_numbers;
 	int way_numbers = (*self).way_numbers;
-	int cash[set_numbers][way_numbers][3] = (*cache).data;
+	int (*cash)[way_numbers][3] = (int (*)[way_numbers][3]) (*cache).data;
 
 	int way;
 	for (way = 0; way < (*self).way_numbers; way++)
@@ -230,6 +225,7 @@ void **cache_initializer(struct cache_config *config)
 	{
 		printf("ERROR: cache.c - cache_cont malloc failed\n");
 	}
+	printf("cache_cont - malloc complete\n");
 	// Basic variables initialization
 	(*cache_cont).capacity = capacity;
 	(*cache_cont).block_size = block_size;
@@ -237,9 +233,10 @@ void **cache_initializer(struct cache_config *config)
 	(*cache_cont).set_numbers = set_numbers;
 	(*cache_cont).tag_filter_bits = (3 + (int) log2(block_size) + (int) log2(set_numbers));
 	(*cache_cont).index_filter_bits = (3 + (int) log2(block_size));
-	
+	printf("cache_cont - Basic variables has been initialized\n");
+	printf("cache_cont - Proceeding to initialize dynamically allocated LRU\n");
 	// LRU data structure initilization
-	int LRU[set_numbers][way_numbers] = (*cache_cont).LRU;
+	int (*LRU)[way_numbers] = (int (*)[way_numbers]) (*cache_cont).LRU;
 	int i, j, k;
 	for (i = 0; i < set_numbers; i++)
 	{
@@ -248,7 +245,7 @@ void **cache_initializer(struct cache_config *config)
 			LRU[i][j] = way_numbers - (j + 1);
 		}
 	}
-
+	printf("cache_cont - LRU has been initialized\n");
 	// Methods initialization
 	(*cache_cont).update_LRU = update_LRU;
 	(*cache_cont).find_victim = find_victim;
@@ -258,11 +255,14 @@ void **cache_initializer(struct cache_config *config)
 	(*cache_cont).search = search;
 	(*cache_cont).read_try = read_try;
 	(*cache_cont).write_try = write_try;
+	printf("cache_cont - Methods have been initialized\n");
 
+	printf("cache - Trying malloc of cache...\n");
 	// Initializing cache
-	struct cons_cache *cache = malloc(sizeof(struct cons_cache) + (sizeof(int) * set_numbers * way_numbers * 3));
-	int cash[set_numbers][way_numbers][3] = (*cache).data; 
-
+	struct cons_cache *cache = malloc((sizeof(int) * set_numbers * way_numbers * 3));
+	int (*cash)[way_numbers][3] = (int (*)[way_numbers][3]) (*cache).data; 
+	printf("cache - malloc has been completed\n");
+	printf("cache - proceeding to initialized dynamically allocated cache\n");
 	for (i = 0; i < set_numbers; i ++)
 	{
 		for (j = 0; j < way_numbers; j ++)
@@ -273,9 +273,12 @@ void **cache_initializer(struct cache_config *config)
 			}
 		}
 	}
-	
+	printf("cache - initialization has been completed\n");
+	printf("stat - trying malloc\n");
 	// Initializing statistics *stat
 	struct statistics *stat = malloc(sizeof(struct statistics));
+	printf("stat - malloc has been completed\n");
+	printf("stat - Start initializing stat\n");
 	if (stat == NULL)
 	{
 		printf("ERROR: cache.c - stat malloc failed\n");
@@ -286,6 +289,8 @@ void **cache_initializer(struct cache_config *config)
 	(*stat).Write_misses = 0;
 	(*stat).Clean_evictions = 0;
 	(*stat).Dirty_evictions = 0;
+	printf("stat - initialization has been completed\n");
+
 
 	// Returning Declared & Initialized objects
 	// Cast these pointers at caller function
