@@ -1,4 +1,4 @@
-test
+﻿test
 <<<<<<< HEAD
 ForVS_Solution
 =======
@@ -40,4 +40,3 @@ ForVS_Solution
 /forvs_oooc/hw3_trace_bzip2.out
 /forvs_oooc/Debug/inst1.txt_inst2.txt_config.txt_out.out
 /forvs_oooc/Debug/config.txt_inst1.txt_inst2.txt_out.out
-/Iterator.h
