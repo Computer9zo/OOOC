@@ -222,7 +222,15 @@ void **cache_initializer(struct cache_config *config)
 	(*cache_cont).index_filter_bits = (3 + (int) log2(block_size));
 	
 	// LRU data structure initilization
-	int i, j;
+	(*cache_cont).LRU = (int **)malloc(sizeof(int *) * set_numbers);
+	(*cache_cont).LRU[0] = (int *)malloc(sizeof(int) * set_numbers * way_numbers);
+
+	int i, j, k;
+	for (i = 0; i < set_numbers; i ++)
+	{
+		(*cache_cont).LRU[i] = (*(*cache_cont).LRU + way_numbers * i);
+	}
+
 	for (i = 0; i < set_numbers; i++)
 	{
 		for (j = 0; j < way_numbers; j++)
@@ -240,12 +248,31 @@ void **cache_initializer(struct cache_config *config)
 	(*cache_cont).search = search;
 	(*cache_cont).read_try = read_try;
 	(*cache_cont).write_try = write_try;
-	
-	// Initializing cache *cache
-	struct cons_cache *cache = calloc((3 * way_numbers * set_numbers), sizeof(int));
-	if (cache == NULL)
+
+	// Initializing cache
+	struct cons_cache *cache = malloc(sizeof(struct cons_cache) + (sizeof(int ***) * set_numbers));
+	for (i = 0; i < set_numbers; i++)
 	{
-		printf("ERROR: cache.c - cache calloc failed\n");
+		(*cache).data[i] = malloc(sizeof(int **) * way_numbers);
+	}
+
+	for (i = 0; i < set_numbers; i ++)
+	{
+		for (j = 0; j < way_numbers; j++)
+		{
+			(*cache).data[i][j] = malloc(sizeof(int *) * 3);
+		}
+	}
+
+	for (i = 0; i < set_numbers; i ++)
+	{
+		for (j = 0; j < way_numbers; j ++)
+		{
+			for (k = 0; k < 3; k++)
+			{
+				(*cache).data[i][j][k] = 0;
+			}
+		}
 	}
 	
 	// Initializing statistics *stat

@@ -58,11 +58,6 @@ struct cache_config
 	int set_numbers;
 };
 
-struct cons_cache
-{
-	int ***data; // For struct hack
-};
-
 struct statistics
 {
 	int Read_accesses;
@@ -71,6 +66,11 @@ struct statistics
 	int Write_misses;
 	int Clean_evictions;
 	int Dirty_evictions;
+};
+
+struct cons_cache
+{
+	int ***data;
 };
 
 struct cons_cache_controller
