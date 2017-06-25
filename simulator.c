@@ -147,12 +147,12 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 		//ROB를 rob_status.occupied만큼 돌면서 commit/ (ex/issue) 실행
 		//다수의 ROB의 최상위 원소중에서 C이고, time이 가장 적은것부터 commit하여 width나 모두 다 닳을때까지 실행 
 
-		//commit(&simul_data);
+		commit(&simul_data);
 		ex_and_issue(&simul_data);
 		printf("t");
 		//lsq_ex_and_retire(&simul_data);
 		//lsq_exe(&simul_data, simul_data.core.lsq, simul_data.core.rob);
-		lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
+		//lsq_issue(&simul_data, simul_data.core.lsq, simul_data.core.rob);
 		printf("t");
 		//issue();
 		
@@ -466,7 +466,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 		 // Element has been poped from Fetch Queue
 			fq_pop(simul);
 
-		 // Count Instruction number
+			// Count Instruction number
 			++(simul->info.cnt_Insts);
 			switch (fq_ele->opcode)
 			{
@@ -480,7 +480,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				++(simul->info.cnt_MemWrite);
 				break;
 			}
-			
+
 			//init;
 			struct RAT_ARR* rat = simul->core.rat;
 			struct ROB_ARR* rob = simul->core.rob;
@@ -504,7 +504,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				(*rs_ele).oprd_1.data.q = rat->rat[oprd_1].Q;
 			}
 
-			if (oprd_2 == 0 || rat->rat[oprd_2].RF_valid)
+			if (oprd_2 == 0 || fq_ele->opcode != IntAlu|| rat->rat[oprd_2].RF_valid)
 			{
 				(*rs_ele).oprd_2.state = V;
 				(*rs_ele).oprd_2.data.v = oprd_2;
