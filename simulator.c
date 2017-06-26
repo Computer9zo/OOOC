@@ -392,7 +392,7 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul)
 {
 	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) rob h
-	printf("rob %d : lsq %d \n", simul->core.info.rob.remain, simul->core.info.lsq.remain);
+	//printf("rob %d : lsq %d \n", simul->core.info.rob.remain, simul->core.info.lsq.remain);
 	if ( (simul->core.fq->ca.occupied > 0) && (simul->core.info.rob.remain>0) )
 	{
 		struct FQ * fq_ele;
@@ -535,7 +535,7 @@ void decode_and_value_payback(struct simulator_data* simul)
 		{
 			if (false == (rs->rs[i].is_completed_this_cycle) )//if not this entry flushed this cycle,
 			{
-				decode( (rs->rs)+i, i, simul);// Try to decode instruction into empty place
+				decode( &(rs->rs[i]), i, simul);// Try to decode instruction into empty place
 			}
 			else
 			{
@@ -905,16 +905,20 @@ void ex_and_issue(struct simulator_data* simul)
 	rob_ptr_idx = rob->ll.head;
 	rob_ptr = (rob->rob) + (rob_ptr_idx);
 	
-	for (i = 0; i < (rob->ll.occupied); ++i)
+	for (i = 0; i < (rob->ll.occupied); i++)
 	{//모든 원소에 대해, 검사한다
 
-		if (rob_ptr->status == P)
+		rs_ele = (rs->rs) + (rob_ptr->rs_dest);
+
+		if ( (rob_ptr->status == P) &&(rs_ele->is_valid == true) 
+			&& (rob_ptr->opcode==0 || ((lsq->lsq)[rob_ptr->lsq_source].address == -1 ) ))
 		{//만약 상태가 P라면, 이는 issue의 대상과 ex의 대상을 포함한다.
 			
-			rs_ele = (rs->rs) + (rob_ptr->rs_dest);
-
-			if (rs_ele->time_left == 0 && rs_ele->is_valid == true)
-			{//만약 Issue 되었다면
+			printf("ROB%d real%d :", i+1, rob_ptr_idx);
+			printf("RS%d : ", rob_ptr->rs_dest+1);
+			if ( rs_ele->time_left == 0 )//만약 Issue 되었다면
+			{
+				printf("retire ");
 				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
 			}
@@ -923,7 +927,7 @@ void ex_and_issue(struct simulator_data* simul)
 				issue(rs_ele,&issue_remain);
 				//이슈 조건을 검사하고 부합할 경우 이슈한다.
 			}
-
+			printf("\n");
 		}
 
 		//다음 원소로 포인터를 이동한다
