@@ -480,12 +480,6 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
 			rob->rob[rob->ll.tail].lsq_source = lsq->ll.prev[lsq->ll.tail];
 			
-			//TODO: Check is this right?
-			(*rs_ele).rob_dest = rob->ll.tail;
-			LL_cnt_push(&simul->core.rob->ll);
-			--(simul->core.info.rob.remain);
-
-			
 
 			// Modify RAT status
 			if (fq_ele->dest != 0)
@@ -494,6 +488,10 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				rat->rat[fq_ele->dest].Q = rob->ll.tail;   // So leave reference to ROB entry in RAT
 			}
 
+			//TODO: Check is this right?
+			(*rs_ele).rob_dest = rob->ll.tail;
+			LL_cnt_push(&simul->core.rob->ll);
+			--(simul->core.info.rob.remain);
 
 			--(*decoded_remain);
 		}
@@ -994,7 +992,7 @@ void commit(struct simulator_data* simul)
 					}
 				}
 				
-				if (rob_ptr->opcode != IntAlu)
+				if (rob_ptr->opcode == MemRead)
 				{
 					// Remove from LSQ
 					LL_cnt_pop(&(*lsq_arr).ll, rob_ptr->lsq_source);
