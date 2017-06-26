@@ -99,7 +99,7 @@ void fetch(struct THREAD *inst, struct simulator_data* simul);
 void issue(struct RS *rs_ele, int* issue_remain);
 void execute(struct RS *rs_ele, struct ROB* rob_ele, struct LSQ_ARR *lsq_arr, struct simulator_data* simul);
 void rs_retire(struct RS *rs_ele, struct ROB *rob_ele);
-void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain);
+void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul);
 void value_payback(struct RS *rs_ele, struct ROB_ARR *rob);
 void disp_debug(struct simulator_data* simul,int dump);
 
@@ -127,9 +127,9 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	{	
 		//TODO: Check here ! Core logic
 		//cycle plus
-		printf("Current cycle: %d\n", simul_data.info.cycle);
+		//printf("Current cycle: %d\n", simul_data.info.cycle);
 		++(simul_data.info.cycle);
-
+		printf("%d\n", simul_data.info.cnt_Insts);
 		//각 명령의 실행 횟수를 초기화한다.
 		remains_update(&simul_data);
 		//Loop1
@@ -389,15 +389,16 @@ void fetch(struct THREAD *inst, struct simulator_data* simul)
 	}
 }
 
-void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *decoded_remain)
+void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul)
 {
 	// Decode only when: 1) fq is not empty. 2) Upto N instructions. 3) rob h
-	if (simul->core.fq->ca.occupied > 0 && *decoded_remain > 0 && simul->core.info.rob.remain>0)
+	printf("rob %d : lsq %d \n", simul->core.info.rob.remain, simul->core.info.lsq.remain);
+	if ( (simul->core.fq->ca.occupied > 0) && (simul->core.info.rob.remain>0) )
 	{
 		struct FQ * fq_ele;
 		fq_ele = (simul->core.fq->fq) + (simul->core.fq->ca.head); //디코드해올 fq의 inst
 
-		if (fq_ele->opcode == IntAlu || simul->core.info.lsq.remain > 0)
+		if ( (fq_ele->opcode == IntAlu) || (simul->core.info.lsq.remain > 0) )
 		{//int alu가 아니라면, lsq에 여유가 있는지를 검사한다.
 
 		 // Element has been poped from Fetch Queue
@@ -458,7 +459,9 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			switch (fq_ele->opcode)
 			{
 			case 0:
+				rob->rob[rob->ll.tail].lsq_source = 0;
 				break;
+
 			case 1:
 			case 2:
 				lsq->lsq[lsq->ll.tail].opcode = fq_ele->opcode;
@@ -467,6 +470,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 				lsq->lsq[lsq->ll.tail].time = -1;
 				lsq->lsq[lsq->ll.tail].status = P;
 				rs_ele->lsq_dest = lsq->ll.tail;
+				rob->rob[rob->ll.tail].lsq_source = lsq->ll.tail;
 				LL_cnt_push(&simul->core.lsq->ll);
 				--(simul->core.info.lsq.remain);
 				break;
@@ -478,7 +482,7 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			rob->rob[rob->ll.tail].rs_dest = rs_idx;
 			rob->rob[rob->ll.tail].status = P;
 			rob->rob[rob->ll.tail].inst_num = fq_ele->inst_num;
-			rob->rob[rob->ll.tail].lsq_source = lsq->ll.prev[lsq->ll.tail];
+			
 			
 
 			// Modify RAT status
@@ -493,7 +497,6 @@ void decode(struct RS *rs_ele, int rs_idx, struct simulator_data* simul, int *de
 			LL_cnt_push(&simul->core.rob->ll);
 			--(simul->core.info.rob.remain);
 
-			--(*decoded_remain);
 		}
 	}
 }
@@ -521,9 +524,8 @@ void decode_and_value_payback(struct simulator_data* simul)
 	struct ROB_ARR* rob = simul->core.rob;
 
 	//struct CONFIG * config, struct ROB_ARR *rob, struct ROB_ARR *lsq, struct RS_ARR * rs, struct FQ_ARR * fetch_queue, struct RAT_ARR * rat, struct SIMUL_INFO *info
-	int decoded = simul->core.info.rob.width;
 	// For every entries in Reservation Station,
-	for (int i = 0; i < rs->size; i++)
+	for (int i = 0; i < (rs->size); i++)
 	{
 		if (rs->rs[i].is_valid) // Instruction is inside this entry of RS
 		{
@@ -531,13 +533,14 @@ void decode_and_value_payback(struct simulator_data* simul)
 		}
 		else// This entry of RS is empty now
 		{
-			if (false== rs->rs[i].is_completed_this_cycle)//if not this entry flushed this cycle,
+			if (false == (rs->rs[i].is_completed_this_cycle) )//if not this entry flushed this cycle,
 			{
-				decode( (rs->rs)+i, i, simul, &decoded);// Try to decode instruction into empty place
+				decode( (rs->rs)+i, i, simul);// Try to decode instruction into empty place
 			}
 			else
 			{
-				rs->rs[i].is_completed_this_cycle = false;
+				printf("X\n");
+				(rs->rs[i].is_completed_this_cycle) = false;
 			}
 		}
 	}
@@ -910,7 +913,7 @@ void ex_and_issue(struct simulator_data* simul)
 			
 			rs_ele = (rs->rs) + (rob_ptr->rs_dest);
 
-			if (rs_ele->time_left == 0)
+			if (rs_ele->time_left == 0 && rs_ele->is_valid == true)
 			{//만약 Issue 되었다면
 				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
