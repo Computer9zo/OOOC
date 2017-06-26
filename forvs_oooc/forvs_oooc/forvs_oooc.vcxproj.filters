@@ -13,42 +13,57 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Old_files">
+      <UniqueIdentifier>{b4784565-4b5c-4885-ac5e-78c145477625}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\.gitignore" />
     <None Include="..\..\.gitattributes" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\data_structures.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\file_read.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\cache.c">
-      <Filter>Source Files</Filter>
+      <Filter>Old_files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\file_read.c">
+      <Filter>Old_files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\simulator.c">
-      <Filter>Source Files</Filter>
+      <Filter>Old_files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\old_main.c">
+      <Filter>Old_files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\old_data_structures.c">
+      <Filter>Old_files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\disp_message.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\simulator.h">
+      <Filter>Old_files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cache.h">
+      <Filter>Old_files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\data_structures.h">
+      <Filter>Old_files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\header_path.h">
+      <Filter>Old_files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\data_structure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\file_read.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\header_path.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\simulator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\cache.h">
+    <ClInclude Include="..\..\data_container.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

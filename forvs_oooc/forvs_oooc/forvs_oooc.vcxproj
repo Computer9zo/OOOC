@@ -115,18 +115,40 @@
     <None Include="..\..\.gitignore" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\cache.c" />
-    <ClCompile Include="..\..\data_structures.c" />
-    <ClCompile Include="..\..\file_read.c" />
+    <ClCompile Include="..\..\cache.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\old_data_structures.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\file_read.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\old_main.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\main.c" />
-    <ClCompile Include="..\..\simulator.c" />
+    <ClCompile Include="..\..\simulator.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\cache.h" />
-    <ClInclude Include="..\..\data_structures.h" />
+    <ClInclude Include="..\..\cache.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\data_container.h" />
+    <ClInclude Include="..\..\data_structure.h" />
+    <ClInclude Include="..\..\data_structures.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\disp_message.h" />
     <ClInclude Include="..\..\file_read.h" />
-    <ClInclude Include="..\..\header_path.h" />
-    <ClInclude Include="..\..\simulator.h" />
+    <ClInclude Include="..\..\header_path.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\simulator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
