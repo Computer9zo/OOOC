@@ -674,14 +674,14 @@ void lsq_issue(struct simulator_data *simul)
 					if (is_hit)
 					{
 						// (*lsq_arr[i].lsq).time = 2;
-						(*lsq_ptr).time = 2;
+						(*lsq_ptr).time = 1;
 						// (*lsq_arr[i].lsq).was_hit = HIT;
 						(*lsq_ptr).was_hit = HIT;
 					}
 					else
 					{
 						// (*lsq_arr[i].lsq).time = 52;
-						(*lsq_ptr).time = 52;
+						(*lsq_ptr).time = 51;
 						// (*lsq_arr[i].lsq).was_hit = MISS;
 						(*lsq_ptr).was_hit = MISS;
 						int j;
@@ -689,7 +689,7 @@ void lsq_issue(struct simulator_data *simul)
 						{
 							if ((*lsq_ptr).address == older_stores[j])
 							{
-								(*lsq_ptr).time = 2;
+								(*lsq_ptr).time = 1;
 								(*lsq_ptr).was_hit = FORWARD;
 								break;
 							}
@@ -979,13 +979,13 @@ void commit(struct simulator_data* simul)
 					if((*lsq_arr).lsq[rob_ptr->lsq_source].was_hit == HIT)
 					{
 						// If it was HIT, issue with 1 cycles
-						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 1; 
+						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 0; 
 						// cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 					}
 					else
 					{
 						// If it was MISS, issue with 51 cycles 
-						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 51;
+						(*lsq_arr).lsq[rob_ptr->lsq_source].time = 50;
 						// cache_filler(cache_cont, cache, stat, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 						// cache_writer(cache_cont, cache, (*lsq_arr).lsq[rob_ptr->lsq_source].address);
 
