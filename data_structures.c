@@ -154,10 +154,6 @@ void RS_printer(const struct RS* printed, const struct LL_status* rob_status)
 
 		printf("left%2d", printed->time_left);
 	}
-	else if (printed->is_completed_this_cycle)
-	{
-		printf("            XX            ");
-	}
 	else
 	{
 		printf("                          ");

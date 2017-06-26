@@ -127,7 +127,7 @@ int core_simulator(struct CONFIG *config, struct THREAD* threads, int thread_num
 	{	
 		//TODO: Check here ! Core logic
 		//cycle plus
-		//printf("Current cycle: %d\n", simul_data.info.cycle);
+		printf("Current cycle: %d\n", simul_data.info.cycle);
 		++(simul_data.info.cycle);
 		printf("%d\n", simul_data.info.cnt_Insts);
 		//각 명령의 실행 횟수를 초기화한다.
@@ -539,7 +539,6 @@ void decode_and_value_payback(struct simulator_data* simul)
 			}
 			else
 			{
-				printf("X\n");
 				(rs->rs[i].is_completed_this_cycle) = false;
 			}
 		}
@@ -911,14 +910,14 @@ void ex_and_issue(struct simulator_data* simul)
 		rs_ele = (rs->rs) + (rob_ptr->rs_dest);
 
 		if ( (rob_ptr->status == P) &&(rs_ele->is_valid == true) 
-			&& (rob_ptr->opcode==0 || ((lsq->lsq)[rob_ptr->lsq_source].address == -1 ) ))
+			&& ( rs_ele->rob_dest == rob_ptr_idx ))
 		{//만약 상태가 P라면, 이는 issue의 대상과 ex의 대상을 포함한다.
 			
-			printf("ROB%d real%d :", i+1, rob_ptr_idx);
-			printf("RS%d : ", rob_ptr->rs_dest+1);
+			//printf("ROB%d real%d :", i+1, rob_ptr_idx);
+			//printf("RS%d : ", rob_ptr->rs_dest+1);
 			if ( rs_ele->time_left == 0 )//만약 Issue 되었다면
 			{
-				printf("retire ");
+				//printf("retire ");
 				execute(rs_ele, rob_ptr, lsq, simul);
 				//실행하고 완료시 mem_load는 lsq issue, 나머지는 retire한다.
 			}
@@ -927,7 +926,7 @@ void ex_and_issue(struct simulator_data* simul)
 				issue(rs_ele,&issue_remain);
 				//이슈 조건을 검사하고 부합할 경우 이슈한다.
 			}
-			printf("\n");
+			//printf("\n");
 		}
 
 		//다음 원소로 포인터를 이동한다
